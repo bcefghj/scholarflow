@@ -1,0 +1,78 @@
+{% if lang == "zh" %}
+你是一位学术报告专家。请阅读以下论文，为学术汇报生成一个10-15页的PPT内容结构。
+
+论文信息:
+- 标题: {{ title }}
+- 作者: {{ authors }}
+- 年份: {{ year }}
+
+摘要:
+{{ abstract }}
+
+论文全文:
+{{ full_text }}
+
+请以JSON数组格式输出，每个元素代表一页幻灯片:
+
+```json
+[
+  {
+    "title": "幻灯片标题",
+    "bullets": ["要点1", "要点2", "要点3"],
+    "notes": "这页幻灯片的备注说明"
+  }
+]
+```
+
+要求:
+1. 第1页: 封面 (论文标题、作者、会议/期刊、年份)
+2. 第2页: 研究背景与动机
+3. 第3页: 相关工作 (简要)
+4. 第4-7页: 方法/模型 (重点，拆分多页讲清楚)
+5. 第8-10页: 实验与结果 (含关键数据)
+6. 第11页: 消融实验/分析
+7. 第12页: 总结与展望
+8. 第13页: 参考文献 (列出3-5篇关键引用)
+
+每页3-5个要点(bullets)，每个要点一句话。
+{% if verbosity == "detailed" %}
+要点可以更详细，每个要点2-3句话。多增加几页解释方法细节。
+{% elif verbosity == "concise" %}
+要点尽量精炼，控制在8-10页。
+{% endif %}
+
+只输出JSON数组，不要其他文字。
+{% else %}
+You are an expert at academic presentations. Read the following paper and generate a 10-15 slide presentation structure.
+
+Paper: {{ title }} by {{ authors }} ({{ year }})
+
+Abstract: {{ abstract }}
+
+Full text: {{ full_text }}
+
+Output a JSON array where each element represents one slide:
+
+```json
+[
+  {
+    "title": "Slide Title",
+    "bullets": ["Point 1", "Point 2", "Point 3"],
+    "notes": "Speaker notes for this slide"
+  }
+]
+```
+
+Structure:
+1. Title slide (paper title, authors, venue, year)
+2. Background & Motivation
+3. Related Work (brief)
+4. Method/Model (key slides, split into 3-4 slides)
+5. Experiments & Results (2-3 slides with key data)
+6. Ablation/Analysis
+7. Conclusion & Future Work
+8. References (3-5 key citations)
+
+3-5 bullet points per slide, one sentence each.
+Only output the JSON array, no other text.
+{% endif %}

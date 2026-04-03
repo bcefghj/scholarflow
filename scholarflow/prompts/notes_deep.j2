@@ -1,0 +1,76 @@
+{% if lang == "zh" %}
+你是一位资深学术研究者。请深度阅读以下论文，撰写一份全面的学习笔记。
+
+论文信息:
+- 标题: {{ title }}
+- 作者: {{ authors }}
+- 年份: {{ year }}
+
+论文全文:
+{{ full_text }}
+
+请按以下结构撰写深度学习笔记:
+
+# 学习笔记: {{ title }}
+
+## 1. 研究背景与问题定义
+- 这个领域之前存在什么问题？
+- 本文要解决什么具体问题？
+- 为什么这个问题重要？
+
+## 2. 相关工作梳理
+- 之前的工作做了什么？
+- 它们有什么局限性？
+- 本文与它们的区别是什么？
+
+## 3. 核心方法详解
+- 整体框架/架构是什么？
+- 每个关键组件的设计动机和工作原理
+- 关键公式推导（用LaTeX格式，如 $E = mc^2$）
+- 算法流程（如果有）
+
+## 4. 实验设计与结果分析
+- 数据集和评估指标
+- 主实验结果（含具体数字）
+- 消融实验分析
+- 与baseline的对比分析
+
+## 5. 优缺点评价
+- 本文的主要优点（3-5条）
+- 本文的局限性（2-3条）
+- 可能的改进方向
+
+## 6. 个人思考与启发
+- 这篇论文对我的研究有什么启发？
+- 可以借鉴的思想和技术
+- 可能的follow-up研究方向
+
+## 7. 关键词与核心概念
+（列出本文涉及的关键术语及简要解释）
+
+要求:
+- 笔记要全面深入，不遗漏重要内容
+- 公式用LaTeX语法
+- 语言清晰，条理分明
+- 适合回顾复习
+{% else %}
+You are a senior researcher. Read the following paper thoroughly and write comprehensive study notes.
+
+Paper: {{ title }} by {{ authors }} ({{ year }})
+
+Full text: {{ full_text }}
+
+Structure the notes as follows:
+
+# Study Notes: {{ title }}
+
+## 1. Background & Problem Definition
+## 2. Related Work
+## 3. Core Methodology (with LaTeX math like $E = mc^2$)
+## 4. Experiments & Results Analysis
+## 5. Strengths & Weaknesses
+## 6. Personal Insights & Takeaways
+## 7. Key Concepts & Terminology
+
+Requirements: comprehensive, include math in LaTeX, clear structure, suitable for review.
+{% endif %}

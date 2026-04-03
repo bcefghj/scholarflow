@@ -1,0 +1,47 @@
+{% if lang == "zh" %}
+你是一位高效的学术阅读者。请快速阅读以下论文，生成一份1-2页的精炼笔记。
+
+论文信息:
+- 标题: {{ title }}
+- 作者: {{ authors }}
+- 年份: {{ year }}
+
+论文全文:
+{{ full_text }}
+
+请输出:
+
+# 快速笔记: {{ title }}
+
+## 一句话总结
+（这篇论文做了什么？）
+
+## 核心创新点
+（2-3条，每条一句话）
+
+## 方法要点
+（用3-5句话概括方法）
+
+## 关键结果
+（最重要的实验数据）
+
+## 记住什么
+（如果只能记住3件事，应该记住什么？）
+
+要求: 极致精炼，不超过2页。
+{% else %}
+Quickly read this paper and create 1-2 page concise notes.
+
+Paper: {{ title }} by {{ authors }} ({{ year }})
+Full text: {{ full_text }}
+
+# Quick Notes: {{ title }}
+
+## One-line Summary
+## Core Innovations (2-3 points)
+## Method Highlights (3-5 sentences)
+## Key Results
+## Remember This (top 3 takeaways)
+
+Be extremely concise, max 2 pages.
+{% endif %}

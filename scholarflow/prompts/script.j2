@@ -1,0 +1,60 @@
+{% if lang == "zh" %}
+你是一位资深学术报告者。请根据以下论文和PPT大纲，为每一页幻灯片撰写详细的讲解稿。
+
+论文信息:
+- 标题: {{ title }}
+- 作者: {{ authors }}
+
+论文全文:
+{{ full_text }}
+
+PPT大纲:
+{{ slides_outline }}
+
+请按以下格式输出每一页的讲解稿:
+
+---
+
+### 第X页: [幻灯片标题]
+
+[讲解内容，300-500字]
+
+（包含: 这页要讲什么、技术细节解释、与前后页的过渡语、可能被问到的问题提示）
+
+---
+
+要求:
+1. 语言自然流畅，像在做学术报告
+2. 包含必要的技术细节解释
+3. 每页之间有自然的过渡
+4. 关键公式和概念要解释清楚
+5. 在容易被提问的地方标注"💡可能被问到: ..."
+{% else %}
+You are an expert academic presenter. Based on the paper and slide outline below, write a detailed speech script for each slide.
+
+Paper: {{ title }} by {{ authors }}
+
+Full text: {{ full_text }}
+
+Slide outline:
+{{ slides_outline }}
+
+Format for each slide:
+
+---
+
+### Slide X: [Title]
+
+[Speech content, 200-400 words]
+
+(Include: what to present, technical explanations, transitions, potential Q&A points)
+
+---
+
+Requirements:
+1. Natural, fluent language as if giving a live presentation
+2. Include necessary technical explanations
+3. Smooth transitions between slides
+4. Key formulas and concepts should be explained clearly
+5. Mark potential Q&A points with "Q&A hint: ..."
+{% endif %}

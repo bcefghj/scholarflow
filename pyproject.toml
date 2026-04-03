@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scholarflow"
+version = "0.1.0"
+description = "The ultimate academic paper processing tool. PDF → summary, slides, speech script, study notes, and more."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "ScholarFlow Team" }]
+keywords = [
+    "academic",
+    "paper",
+    "pdf",
+    "slides",
+    "notes",
+    "latex",
+    "pptx",
+    "beamer",
+    "presentation",
+    "research",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "pymupdf>=1.24.0",
+    "litellm>=1.40.0",
+    "python-pptx>=1.0.0",
+    "typer[all]>=0.12.0",
+    "jinja2>=3.1.0",
+    "requests>=2.31.0",
+    "rich>=13.0.0",
+    "python-dotenv>=1.0.0",
+    "Pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+web = ["fastapi", "uvicorn[standard]", "python-multipart"]
+mcp = ["fastmcp>=0.1.0"]
+all = ["scholarflow[web,mcp]"]
+
+[project.scripts]
+sf = "cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/bcefghj/scholarflow"
+Repository = "https://github.com/bcefghj/scholarflow"
+
+[tool.hatch.build.targets.wheel]
+packages = ["scholarflow", "cli"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

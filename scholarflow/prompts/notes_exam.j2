@@ -1,0 +1,61 @@
+{% if lang == "zh" %}
+你是一位考试辅导专家。请阅读以下论文，生成一份面向考试复习的精华笔记。
+
+论文信息:
+- 标题: {{ title }}
+- 作者: {{ authors }}
+
+论文全文:
+{{ full_text }}
+
+请按以下结构输出:
+
+# 考试复习笔记: {{ title }}
+
+## 核心知识点
+（列出本文最重要的5-8个知识点，每个用1-2句话解释）
+
+## 关键公式汇总
+（列出所有重要公式，用LaTeX格式，附简要说明）
+- $公式1$: 含义说明
+- $公式2$: 含义说明
+
+## 重要结论
+（列出本文的主要结论/发现）
+
+## 方法概要
+（用简洁的语言概括方法流程，适合快速记忆）
+
+## 易混淆概念辨析
+（列出容易混淆的概念，对比说明区别）
+
+## 自测题
+1. 问题1？
+   答案: ...
+2. 问题2？
+   答案: ...
+3. 问题3？
+   答案: ...
+（设计5道自测题，覆盖核心知识点）
+
+要求:
+- 重点突出，适合考前快速复习
+- 公式用LaTeX
+- 自测题有参考答案
+{% else %}
+You are an exam prep expert. Read this paper and create exam-focused study notes.
+
+Paper: {{ title }} by {{ authors }}
+Full text: {{ full_text }}
+
+# Exam Review Notes: {{ title }}
+
+## Key Concepts (5-8 most important points, 1-2 sentences each)
+## Formula Summary (all key formulas in LaTeX with explanations)
+## Main Conclusions
+## Method Overview (concise, memorizable)
+## Confusing Concepts (compare similar concepts)
+## Self-Test Questions (5 questions with answers)
+
+Focus on exam relevance, use LaTeX for math, include answers.
+{% endif %}

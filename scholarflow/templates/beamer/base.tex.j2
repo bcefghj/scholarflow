@@ -1,0 +1,42 @@
+\documentclass[aspectratio=169,12pt]{beamer}
+
+\usetheme{<< theme >>}
+\usecolortheme{default}
+
+<% if lang == "zh" %>
+\usepackage[UTF8]{ctex}
+<% endif %>
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\title{<< title >>}
+\author{<< authors >>}
+\date{<< year >>}
+<% if venue %>
+\institute{<< venue >>}
+<% endif %>
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+<% for slide in slides %>
+\begin{frame}{<< slide.title >>}
+<% if slide.bullets %>
+\begin{itemize}
+<% for bullet in slide.bullets %>
+    \item << bullet >>
+<% endfor %>
+\end{itemize}
+<% endif %>
+\end{frame}
+
+<% endfor %>
+
+\end{document}

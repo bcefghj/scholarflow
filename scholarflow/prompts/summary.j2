@@ -1,0 +1,97 @@
+{% if lang == "zh" %}
+你是一位资深学术研究者。请阅读以下论文内容，生成一份简要介绍，帮助读者快速判断这篇文献是否值得深入阅读。
+
+论文信息:
+- 标题: {{ title }}
+- 作者: {{ authors }}
+- 年份: {{ year }}
+- 发表于: {{ venue }}
+
+摘要:
+{{ abstract }}
+
+论文全文:
+{{ full_text }}
+
+请按以下格式输出:
+
+# {{ title }}
+
+**作者**: {{ authors }}
+**年份**: {{ year }} | **发表于**: {{ venue }}
+
+## 一句话总结
+（用一句话概括这篇论文做了什么）
+
+## 核心贡献
+（列出3-5条核心贡献）
+
+## 关键方法/技术
+（简述论文使用的方法或技术路线）
+
+## 主要实验结果
+（列出关键实验结果和数据）
+
+## 适合谁读
+（描述这篇论文适合什么背景的研究者阅读）
+
+## 推荐指数：X
+（1-5分，5分为强烈推荐）
+
+## 推荐理由：
+（一句话说明推荐/不推荐的原因）
+
+{% if verbosity == "detailed" %}
+请尽量详细，每个部分多写几句话。
+{% elif verbosity == "concise" %}
+请尽量精炼，每个部分1-2句话即可。
+{% endif %}
+{% else %}
+You are a senior academic researcher. Read the following paper and generate a brief introduction to help readers quickly decide whether this paper is worth reading in depth.
+
+Paper info:
+- Title: {{ title }}
+- Authors: {{ authors }}
+- Year: {{ year }}
+- Venue: {{ venue }}
+
+Abstract:
+{{ abstract }}
+
+Full text:
+{{ full_text }}
+
+Output in this format:
+
+# {{ title }}
+
+**Authors**: {{ authors }}
+**Year**: {{ year }} | **Venue**: {{ venue }}
+
+## One-line Summary
+(Summarize what this paper does in one sentence)
+
+## Core Contributions
+(List 3-5 core contributions)
+
+## Key Methods/Techniques
+(Briefly describe the methodology)
+
+## Main Results
+(List key experimental results)
+
+## Who Should Read This
+(Describe the target audience)
+
+## Score: X
+(1-5, 5 = strongly recommended)
+
+## Reason:
+(One sentence explaining the recommendation)
+
+{% if verbosity == "detailed" %}
+Please be detailed, write several sentences for each section.
+{% elif verbosity == "concise" %}
+Please be concise, 1-2 sentences per section.
+{% endif %}
+{% endif %}

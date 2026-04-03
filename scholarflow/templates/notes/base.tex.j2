@@ -1,0 +1,47 @@
+\documentclass[11pt,a4paper]{article}
+
+<% if lang == "zh" %>
+\usepackage[UTF8]{ctex}
+<% endif %>
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+
+\definecolor{accent}{RGB}{30,60,114}
+\definecolor{notebg}{RGB}{245,248,255}
+\definecolor{tipbg}{RGB}{255,249,230}
+
+\titleformat{\section}{\Large\bfseries\color{accent}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\color{accent!80}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{accent!60}}{\thesubsubsection}{1em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{gray}{<< title >>}}
+\fancyhead[R]{\small\textcolor{gray}{<< mode_label >>}}
+\fancyfoot[C]{\thepage}
+
+\newtcolorbox{notebox}{colback=notebg,colframe=accent!30,boxrule=0.5pt,arc=3pt}
+\newtcolorbox{tipbox}{colback=tipbg,colframe=orange!40,boxrule=0.5pt,arc=3pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries << mode_label >>}\\[0.5em]
+{\large << title >>}\\[0.3em]
+{\normalsize << authors >>}
+\end{center}
+
+\vspace{1em}
+\noindent\rule{\textwidth}{0.4pt}
+\tableofcontents
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{1em}
+
+<< body >>
+
+\end{document}

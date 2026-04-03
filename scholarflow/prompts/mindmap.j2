@@ -1,0 +1,60 @@
+{% if lang == "zh" %}
+请阅读以下论文，生成一个层次化的思维导图（Markmap格式）。
+
+论文: {{ title }} by {{ authors }}
+
+全文: {{ full_text }}
+
+请用Markdown标题层级来表示思维导图结构，直接输出Markdown:
+
+# {{ title }}
+
+## 研究背景
+### 问题描述
+### 研究动机
+
+## 方法
+### 整体架构
+### 关键组件1
+### 关键组件2
+
+## 实验
+### 数据集
+### 主要结果
+### 消融实验
+
+## 结论
+### 核心贡献
+### 未来方向
+
+要求:
+- 用##/###/####表示层级
+- 叶子节点用简洁的短语
+- 覆盖论文的所有关键内容
+- 只输出Markdown，不要其他文字
+{% else %}
+Read this paper and generate a hierarchical mindmap in Markmap-compatible Markdown.
+
+Paper: {{ title }} by {{ authors }}
+Full text: {{ full_text }}
+
+Use Markdown heading levels for hierarchy. Output only Markdown:
+
+# {{ title }}
+## Background
+### Problem
+### Motivation
+## Method
+### Architecture
+### Component 1
+### Component 2
+## Experiments
+### Datasets
+### Results
+### Ablation
+## Conclusion
+### Contributions
+### Future Work
+
+Use ##/###/#### for levels, concise phrases for leaves. Only output Markdown.
+{% endif %}
