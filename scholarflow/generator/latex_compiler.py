@@ -16,10 +16,10 @@ def compile_latex(tex_path: Path, output_dir: Path | None = None) -> Path:
 
     if shutil.which("tectonic"):
         return _compile_tectonic(tex_path, output_dir)
-    elif shutil.which("pdflatex"):
-        return _compile_pdflatex(tex_path, output_dir)
     elif shutil.which("xelatex"):
         return _compile_xelatex(tex_path, output_dir)
+    elif shutil.which("pdflatex"):
+        return _compile_pdflatex(tex_path, output_dir)
     else:
         raise RuntimeError(
             "No LaTeX compiler found. Install one of:\n"

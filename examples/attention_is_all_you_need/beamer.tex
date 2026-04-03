@@ -1,0 +1,258 @@
+\documentclass[aspectratio=169,12pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+
+
+\usepackage{ctex}
+
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\title{Attention Is All You Need}
+\author{Attention Is All You Need}
+\date{2024}
+
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+
+\begin{frame}{Attention Is All You Need}
+
+\begin{itemize}
+
+    \item Ashish Vaswani, Noam Shazeer, Niki Parmar 等
+
+    \item Google Brain \& Google Research
+
+    \item 31st Conference on Neural Information Processing Systems (NeurIPS 2017)
+
+    \item arXiv:1706.03762
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{研究背景与动机}
+
+\begin{itemize}
+
+    \item 序列转导模型长期依赖RNN(LSTM/GRU)和CNN架构
+
+    \item RNN存在固有顺序性，难以并行化，长序列计算受限
+
+    \item CNN虽可并行，但远距离依赖需要多层堆叠才能建立
+
+    \item 注意力机制虽已成功应用，但仍需配合RNN使用
+
+    \item 核心问题：能否用纯注意力机制替代循环和卷积？
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{相关工作}
+
+\begin{itemize}
+
+    \item Neural GPU、ByteNet、ConvS2S：使用CNN减少顺序计算
+
+    \item Self-attention已用于阅读理解、摘要等任务
+
+    \item 端到端记忆网络基于注意力机制
+
+    \item 本文首次提出完全基于自注意力的转导模型
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Transformer模型架构}
+
+\begin{itemize}
+
+    \item 采用标准的Encoder-Decoder结构
+
+    \item Encoder：6层堆叠，每层包含Multi-Head Self-Attention + Feed-Forward
+
+    \item Decoder：6层堆叠，包含Masked Self-Attention + Encoder-Decoder Attention + Feed-Forward
+
+    \item 所有子层输出维度dmodel=512
+
+    \item 使用残差连接和层归一化：LayerNorm(x + Sublayer(x))
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{注意力机制：缩放点积注意力}
+
+\begin{itemize}
+
+    \item 输入：Query Q、Key K、Value V，维度分别为dk, dk, dv
+
+    \item 计算公式：Attention(Q,K,V) = softmax(QK\textasciicircum{}T / √dk)V
+
+    \item 除以√dk防止点积值过大导致softmax梯度消失
+
+    \item 点积注意力比加法注意力速度更快、空间效率更高
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{多头注意力机制}
+
+\begin{itemize}
+
+    \item 将Q、K、V分别投影h次到dk、dk、dv维度
+
+    \item 并行执行h个注意力函数，输出维度hdv
+
+    \item 本文使用h=8，dk=dv=64（总维度保持dmodel=512）
+
+    \item 多头注意力允许模型同时关注不同表示子空间的信息
+
+    \item MultiHead(Q,K,V) = Concat(head1,...,headh)W\textasciicircum{}O
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{位置编码与前馈网络}
+
+\begin{itemize}
+
+    \item Transformer无循环和卷积，需显式注入位置信息
+
+    \item 使用正弦/余弦函数编码：PE(pos,2i)=sin(pos/10000\textasciicircum{}(2i/dmodel))
+
+    \item 位置编码与词嵌入维度相同，可直接相加
+
+    \item 前馈网络：FFN(x) = max(0, xW1+b1)W2+b2，内层维度dff=2048
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{机器翻译实验结果}
+
+\begin{itemize}
+
+    \item WMT 2014 英德翻译：BLEU 28.4，超越此前最佳模型2+ BLEU
+
+    \item WMT 2014 英法翻译：BLEU 41.8，新单模型最高分
+
+    \item 训练仅需3.5天，8块P100 GPU
+
+    \item 显著低于其他模型的训练成本（FLOPs减少数十倍）
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{与其他模型对比}
+
+\begin{itemize}
+
+    \item 英德翻译：Transformer big超越所有集成模型
+
+    \item 英法翻译：Transformer big远优于GNMT、ConvS2S等
+
+    \item 训练成本：Transformer仅为GNMT的1/24（英法）
+
+    \item 基础模型也已超越所有先前发布的单模型
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{泛化能力：英文成分句法分析}
+
+\begin{itemize}
+
+    \item 仅在WSJ数据集（40K句子）训练：F1=91.3
+
+    \item 半监督设置（17M句子）：F1=92.7
+
+    \item 超越BerkeleyParser等先前最佳模型
+
+    \item 证明了Transformer良好的任务泛化能力
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{模型变体与消融分析}
+
+\begin{itemize}
+
+    \item 注意力头数：8头最佳，过多或过少均会降低性能
+
+    \item Key维度dk：减小dk会损害模型质量
+
+    \item 模型规模：更大的模型和更多的dropout有助于防止过拟合
+
+    \item 位置编码：学习的位置编码与正弦编码效果相近
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{总结与未来展望}
+
+\begin{itemize}
+
+    \item Transformer是完全基于注意力机制的序列转导模型
+
+    \item 在翻译质量上达到SOTA，且训练速度显著提升
+
+    \item 可泛化到其他NLP任务（如句法分析）
+
+    \item 未来方向：扩展到图像/音频等模态，研究局部受限注意力
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{参考文献}
+
+\begin{itemize}
+
+    \item [1] Vaswani et al. Attention Is All You Need. NeurIPS, 2017.
+
+    \item [2] Bahdanau et al. Neural Machine Translation by Jointly Learning to Align and Translate. ICLR, 2015.
+
+    \item [3] Hochreiter \& Schmidhuber. Long Short-Term Memory. Neural Computation, 1997.
+
+    \item [4] Cho et al. Learning Phrase Representations using RNN Encoder-Decoder. EMNLP, 2014.
+
+    \item [5] Gehring et al. Convolutional Sequence to Sequence Learning. ICML, 2017.
+
+\end{itemize}
+
+\end{frame}
+
+
+
+\end{document}

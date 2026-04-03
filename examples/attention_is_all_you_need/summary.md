@@ -1,35 +1,48 @@
 # Attention Is All You Need
 
 **作者**: Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, Illia Polosukhin
-**年份**: 2017 | **发表于**: NeurIPS 2017 (NIPS)
+**年份**: 2017 | **发表于**: 31st Conference on Neural Information Processing Systems (NIPS 2017)
+
+> ⚠️ **勘误**: 元数据中标注的2024年有误，这是一篇2017年的经典论文，由Google Brain和Google Research团队发表。
 
 ## 一句话总结
-本文提出了Transformer架构——一种完全基于注意力机制的序列转换模型，彻底摒弃了循环和卷积结构，在机器翻译任务上取得了当时最优结果，并深刻改变了整个深度学习领域的发展方向。
+提出**Transformer**架构，完全基于注意力机制，摒弃了传统的循环和卷积结构，在机器翻译任务上实现了新的最优性能。
 
 ## 核心贡献
-1. **提出Transformer架构**: 第一个完全基于自注意力机制的序列到序列模型，不使用任何RNN或CNN
-2. **多头注意力机制(Multi-Head Attention)**: 允许模型同时关注不同位置的不同表示子空间
-3. **位置编码(Positional Encoding)**: 用正弦/余弦函数注入序列位置信息，替代循环结构的隐式位置建模
-4. **大幅提升训练效率**: 高度并行化，训练速度远超RNN，在8个GPU上仅需3.5天即可训练完成
-5. **建立了后续所有大语言模型的基础架构**: GPT、BERT、T5等均基于Transformer
+
+1. **提出Transformer架构**: 首个完全基于注意力机制的序列转导模型，摒弃RNN和CNN
+2. **Multi-Head Attention (多头注意力)**: 通过多个注意力头并行学习不同表示子空间的信息
+3. **Scaled Dot-Product Attention**: 改进的缩放点积注意力机制，解决大维度下梯度消失问题
+4. **位置编码**: 提出正弦位置编码，使模型能够利用序列位置信息
+5. **高度可并行化**: 大幅减少训练时间，8个P100 GPU仅需12小时完成base模型训练
 
 ## 关键方法/技术
-- **Scaled Dot-Product Attention**: $\text{Attention}(Q,K,V) = \text{softmax}(\frac{QK^T}{\sqrt{d_k}})V$
-- **Multi-Head Attention**: 将Q、K、V投影到多个子空间，并行计算注意力后拼接
-- **Encoder-Decoder架构**: 编码器6层堆叠（自注意力+前馈网络），解码器6层堆叠（自注意力+交叉注意力+前馈网络）
-- **残差连接 + Layer Normalization**: 每个子层后应用
-- **学习率预热调度**: 先线性增加后按步数逆平方根衰减
+
+- **编码器-解码器架构**: 各6层堆叠的编码器和解码器
+- **自注意力机制**: Query、Key、Value来自同一序列，计算序列内部的依赖关系
+- **残差连接 + Layer Normalization**: 稳定深层网络的训练
+- **Adam优化器 + 学习率预热策略**: 自适应学习率调度
+- **Label Smoothing + Dropout**: 正则化技术防止过拟合
 
 ## 主要实验结果
-- **英德翻译**: 28.4 BLEU（超越所有之前的单模型和集成模型）
-- **英法翻译**: 41.0 BLEU（新的SOTA，训练成本仅为之前最优模型的1/4）
-- **训练速度**: 在8块P100 GPU上训练3.5天，远低于之前方法数周的训练时间
-- **英语句法分析**: 泛化到其他任务也表现出色
+
+| 任务 | 模型 | BLEU分数 |
+|------|------|----------|
+| WMT 2014 英德翻译 | Transformer (big) | **28.4** (超越之前最佳2+ BLEU) |
+| WMT 2014 英法翻译 | Transformer (big) | **41.8** (单模型最优) |
+| 英成分句法分析 | Transformer (4层) | 91.3 F1 (WSJ only) |
+| 英成分句法分析 | Transformer (4层) | 92.7 F1 (半监督) |
+
+- 训练成本仅为竞争对手的**1/4到1/8**
 
 ## 适合谁读
-- 所有深度学习/NLP/AI方向的研究者和学生（必读经典）
-- 希望理解GPT、BERT等大模型底层原理的从业者
-- 对注意力机制感兴趣的任何人
+
+- **NLP研究者**: 从事机器翻译、文本生成、序列建模的研究者
+- **深度学习工程师**: 理解现代Transformer架构的必读文献
+- **AI领域学生**: 作为大语言模型(LLM)、BERT、GPT等模型的基石论文
+- **对注意力机制感兴趣的研究者**: 深入理解注意力机制的经典之作
 
 ## 推荐指数：5
-## 推荐理由：深度学习领域最重要的论文之一，Transformer已成为现代AI的基石架构，无论做什么方向都值得精读。
+
+## 推荐理由：
+> 这是深度学习领域最具影响力的论文之一，Transformer架构奠定了现代NLP乃至整个AI领域的基础架构，任何从事AI相关研究的人都应该阅读这篇论文。

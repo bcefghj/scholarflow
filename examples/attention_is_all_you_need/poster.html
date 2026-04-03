@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Attention Is All You Need - Academic Poster</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: #f0f2f5;
+         display: flex; justify-content: center; padding: 20px; }
+  .poster { width: 1200px; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-radius: 8px; overflow: hidden; }
+  .poster-header { background: linear-gradient(135deg, #1a3c6e, #2e75b6); color: white;
+                   padding: 30px 40px; text-align: center; }
+  .poster-header h1 { font-size: 28px; margin-bottom: 10px; line-height: 1.3; }
+  .poster-header .authors { font-size: 16px; opacity: 0.9; }
+  .poster-header .affiliation { font-size: 14px; opacity: 0.7; margin-top: 5px; }
+  .poster-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 25px; }
+  .section { background: #f8faff; border-radius: 6px; padding: 20px; border-left: 4px solid #2e75b6; }
+  .section h2 { color: #1a3c6e; font-size: 18px; margin-bottom: 12px;
+                border-bottom: 2px solid #2e75b6; padding-bottom: 6px; }
+  .section p { font-size: 13px; line-height: 1.6; color: #333; margin-bottom: 8px; }
+  .section ul { font-size: 13px; line-height: 1.8; color: #333; padding-left: 18px; }
+  .section.highlight { border-left-color: #e84d39; }
+  .section.highlight h2 { color: #c0392b; border-bottom-color: #e84d39; }
+  .references { grid-column: 1 / -1; background: #f0f2f5; border-left-color: #888; }
+  .references h2 { color: #555; border-bottom-color: #888; }
+  .references ul { columns: 2; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="poster-header">
+    <h1>Attention Is All You Need</h1>
+    <div class="authors">Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, Illia Polosukhin</div>
+    <div class="affiliation">Google Brain, Google Research, University of Toronto</div>
+  </div>
+  <div class="poster-body">
+    <div class="section">
+      <h2>Introduction</h2>
+      <p>循环神经网络(LSTM和GRU)在序列建模和机器翻译任务中占据主导地位，但其顺序计算的本质限制了并行化能力，使得长序列处理面临内存瓶颈。虽然注意力机制已被广泛用于建模依赖关系，但通常仍需结合循环架构使用。</p>
+      <p><strong>Problem:</strong> 循环模型的顺序性质导致训练时无法并行化，且处理长距离依赖关系时路径长度随序列长度线性增长，严重制约了模型的计算效率和表达能力。</p>
+    </div>
+    <div class="section highlight">
+      <h2>Method</h2>
+      <p>Transformer是一个完全基于注意力机制的新型网络架构，摒弃了循环和卷积操作，通过多头自注意力机制实现输入输出之间的全局依赖建模。该架构包含编码器和解码器两个堆栈，各由6层相同的结构组成，每层采用多头注意力机制和位置前馈网络，配合残差连接和层归一化，并使用正弦函数的位置编码注入序列位置信息。</p>
+      
+      <ul><li>Scaled Dot-Product Attention：通过点积计算注意力分数并除以√dk进行缩放，防止大dk值时梯度消失</li><li>Multi-Head Attention：使用8个并行的注意力头(dk=dv=64)，使模型能同时关注不同表示子空间的信息</li><li>Encoder-Decoder架构：编码器处理源序列，解码器基于编码输出和已生成符号自回归生成目标序列</li><li>位置编码：采用正弦和余弦函数编码位置信息，允许模型学习相对位置关系且可泛化到更长序列</li><li>自注意力机制实现O(1)路径长度的长距离依赖建模，远优于循环的O(n)和卷积的O(logk(n))</li></ul>
+      
+    </div>
+    <div class="section">
+      <h2>Results</h2>
+      <p>Transformer在WMT 2014机器翻译任务上取得突破性成果。英文到德文翻译达到28.4 BLEU，超越所有已有模型包括集成模型2 BLEU以上；英文到法文翻译达到41.8 BLEU，创立单模型新纪录。训练仅需8块P100 GPU约3.5天，远低于竞争模型的训练成本。此外，该模型在英语成分句法分析任务上也展现出优异的泛化能力。</p>
+      
+      <ul><li>WMT 2014 EN-DE: 28.4 BLEU (最佳集成模型提升2+ BLEU)</li><li>WMT 2014 EN-FR: 41.8 BLEU (单模型state-of-the-art)</li><li>训练效率：base模型12小时，big模型3.5天(8 P100 GPUs)</li><li>泛化能力：在英语成分句法分析任务上，WSJ only达到91.3 F1，半监督达92.7 F1</li><li>注意力可视化显示模型能学习语法结构、指代消解等复杂语义关系</li></ul>
+      
+    </div>
+    <div class="section" style="grid-column: 1 / 3;">
+      <h2>Conclusion</h2>
+      <p>Transformer是首个完全基于注意力机制的序列转导模型，成功取代了传统编码器-解码器架构中的循环层。该模型在翻译任务上实现了新的最高水平，同时训练速度显著提升。更重要的是，Transformer展现出强大的泛化能力，成功应用于句法分析等其他NLP任务，为后续BERT、GPT等突破性模型奠定了基础。</p>
+    </div>
+    <div class="section references">
+      <h2>References</h2>
+      
+      <ul><li>Vaswani et al. (2017). Attention Is All You Need. NeurIPS.</li><li>Bahdanau et al. (2014). Neural Machine Translation by Jointly Learning to Align and Translate. ICLR.</li><li>Hochreiter &amp; Schmidhuber (1997). Long Short-Term Memory. Neural Computation.</li></ul>
+      
+    </div>
+  </div>
+</div>
+</body>
+</html>
