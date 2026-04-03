@@ -143,7 +143,7 @@ def run_full_pipeline(
             task = progress.add_task("Generating poster...", total=None)
             poster = analyze_for_poster(content, model, lang)
             analyzed.poster_text = poster
-            results["poster"] = generate_poster(poster, out)
+            results["poster"] = generate_poster(poster, content, out)
             progress.update(task, completed=True, description="[green]Poster done")
 
         if "translate" in targets:

@@ -1,31 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ title }} - Mind Map</title>
 <style>
-  body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-  #mindmap { width: 100vw; height: 100vh; }
-  .header { position: fixed; top: 0; left: 0; right: 0; background: #1a3c6e; color: white;
-            padding: 10px 20px; z-index: 100; font-size: 14px; }
-  .header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; }
+  .header {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: linear-gradient(135deg, #1a3c6e, #2e75b6);
+    color: white; padding: 12px 24px; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header h1 { font-size: 16px; font-weight: 600; }
+  .header .hint { font-size: 12px; opacity: 0.7; }
+  .markmap {
+    position: fixed; top: 50px; left: 0; right: 0; bottom: 0;
+  }
+  .markmap > svg {
+    width: 100%; height: 100%;
+  }
 </style>
 </head>
 <body>
-<div class="header"><h1>{{ title }}</h1></div>
-<svg id="mindmap" style="margin-top: 40px;"></svg>
+<div class="header">
+  <h1>{{ title }}</h1>
+  <span class="hint">Scroll to zoom · Drag to pan · Click nodes to expand/collapse</span>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17"></script>
-<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17"></script>
+<div class="markmap">
+  <script type="text/template">
+{{ markdown_content }}
+  </script>
+</div>
 
 <script>
-const md = {{ markdown_content | tojson }};
-const { Transformer } = markmap;
-const transformer = new Transformer();
-const { root } = transformer.transform(md);
-const { Markmap } = markmap;
-Markmap.create('#mindmap', null, root);
+window.markmap = {
+  autoLoader: {
+    toolbar: true
+  }
+};
 </script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@latest"></script>
 </body>
 </html>

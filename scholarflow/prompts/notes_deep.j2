@@ -6,6 +6,9 @@
 - 作者: {{ authors }}
 - 年份: {{ year }}
 
+论文中的图表:
+{{ figure_list }}
+
 论文全文:
 {{ full_text }}
 
@@ -24,12 +27,18 @@
 - 本文与它们的区别是什么？
 
 ## 3. 核心方法详解
-- 整体框架/架构是什么？
+
+[FIGURE:fig1]
+
+- 整体框架/架构是什么？（参考上面的架构图）
 - 每个关键组件的设计动机和工作原理
 - 关键公式推导（用LaTeX格式，如 $E = mc^2$）
 - 算法流程（如果有）
 
 ## 4. 实验设计与结果分析
+
+[FIGURE:fig2]
+
 - 数据集和评估指标
 - 主实验结果（含具体数字）
 - 消融实验分析
@@ -50,13 +59,18 @@
 
 要求:
 - 笔记要全面深入，不遗漏重要内容
-- 公式用LaTeX语法
+- 公式用LaTeX语法（$...$表示行内公式，$$...$$表示独立公式）
 - 语言清晰，条理分明
 - 适合回顾复习
+- 在合适的位置插入 [FIGURE:figX] 占位符来引用论文中的图表
+- 用 **粗体** 标注关键概念，用 `代码字体` 标注技术术语
 {% else %}
 You are a senior researcher. Read the following paper thoroughly and write comprehensive study notes.
 
 Paper: {{ title }} by {{ authors }} ({{ year }})
+
+Figures in the paper:
+{{ figure_list }}
 
 Full text: {{ full_text }}
 
@@ -67,10 +81,20 @@ Structure the notes as follows:
 ## 1. Background & Problem Definition
 ## 2. Related Work
 ## 3. Core Methodology (with LaTeX math like $E = mc^2$)
+
+[FIGURE:fig1]
+
 ## 4. Experiments & Results Analysis
+
+[FIGURE:fig2]
+
 ## 5. Strengths & Weaknesses
 ## 6. Personal Insights & Takeaways
 ## 7. Key Concepts & Terminology
 
-Requirements: comprehensive, include math in LaTeX, clear structure, suitable for review.
+Requirements:
+- Comprehensive, include math in LaTeX ($...$ for inline, $$...$$ for display)
+- Clear structure, suitable for review
+- Use **bold** for key concepts, `code font` for technical terms
+- Insert [FIGURE:figX] placeholders to reference paper figures at appropriate positions
 {% endif %}

@@ -9,6 +9,9 @@
 摘要:
 {{ abstract }}
 
+论文中的图表:
+{{ figure_list }}
+
 论文全文:
 {{ full_text }}
 
@@ -19,17 +22,24 @@
   {
     "title": "幻灯片标题",
     "bullets": ["要点1", "要点2", "要点3"],
-    "notes": "这页幻灯片的备注说明"
+    "notes": "这页幻灯片的备注说明",
+    "figure_path": "fig1"
   }
 ]
 ```
+
+figure_path字段说明：
+- 如果这页幻灯片应该展示论文中的某个图表，填写对应的图表ID（如"fig1", "fig2"等）
+- 如果不需要图表，留空字符串""
+- 请根据上面的「论文中的图表」列表选择合适的图表
+- 架构图、实验结果图、方法流程图等都应该放在对应的幻灯片上
 
 要求:
 1. 第1页: 封面 (论文标题、作者、会议/期刊、年份)
 2. 第2页: 研究背景与动机
 3. 第3页: 相关工作 (简要)
-4. 第4-7页: 方法/模型 (重点，拆分多页讲清楚)
-5. 第8-10页: 实验与结果 (含关键数据)
+4. 第4-7页: 方法/模型 (重点，拆分多页讲清楚，配合架构图)
+5. 第8-10页: 实验与结果 (含关键数据，配合结果图表)
 6. 第11页: 消融实验/分析
 7. 第12页: 总结与展望
 8. 第13页: 参考文献 (列出3-5篇关键引用)
@@ -49,6 +59,9 @@ Paper: {{ title }} by {{ authors }} ({{ year }})
 
 Abstract: {{ abstract }}
 
+Figures in the paper:
+{{ figure_list }}
+
 Full text: {{ full_text }}
 
 Output a JSON array where each element represents one slide:
@@ -58,17 +71,24 @@ Output a JSON array where each element represents one slide:
   {
     "title": "Slide Title",
     "bullets": ["Point 1", "Point 2", "Point 3"],
-    "notes": "Speaker notes for this slide"
+    "notes": "Speaker notes for this slide",
+    "figure_path": "fig1"
   }
 ]
 ```
+
+figure_path field:
+- If this slide should show a figure from the paper, fill in the figure ID (e.g., "fig1", "fig2")
+- If no figure needed, use empty string ""
+- Choose appropriate figures from the list above
+- Architecture diagrams, result plots, method flowcharts should be placed on corresponding slides
 
 Structure:
 1. Title slide (paper title, authors, venue, year)
 2. Background & Motivation
 3. Related Work (brief)
-4. Method/Model (key slides, split into 3-4 slides)
-5. Experiments & Results (2-3 slides with key data)
+4. Method/Model (key slides, split into 3-4 slides, with architecture diagrams)
+5. Experiments & Results (2-3 slides with key data and result figures)
 6. Ablation/Analysis
 7. Conclusion & Future Work
 8. References (3-5 key citations)

@@ -44,783 +44,598 @@
 
 \section*{学习笔记: Attention Is All You Need}
 
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{1. 研究背景与问题定义}
 
-\subsubsection*{1.1 这个领域之前存在什么问题？}
+\subsubsection*{1.1 领域背景与既有问题}
 
-在Transformer出现之前，**序列转导模型（Sequence Transduction Models）** 主要基于循环神经网络架构，具体包括：
+在自然语言处理（NLP）和序列到序列（Sequence-to-Sequence）建模领域，\textbf{循环神经网络（RNN）}及其变体——尤其是\textbf{长短期记忆网络（LSTM）}和\textbf{门控循环单元（GRU）}——长期以来占据着主导地位。这些模型在机器翻译、语音识别、文本生成等任务中取得了显著成效。
 
-**RNN/LSTM/GRU的固有缺陷：**
+然而，\textbf{循环模型存在根本性的计算限制}：
 
-| 问题类型 | 具体表现 |
-|---------|---------|
-| **顺序计算的瓶颈** | 隐藏状态 $h_t$ 必须等待 $h_{t-1}$ 计算完成，导致训练时无法并行化 |
-| **长距离依赖问题** | 信号在网络中传播的路径长度为 $O(n)$，距离越远，梯度消失/爆炸问题越严重 |
-| **内存限制** | 批处理受到序列长度的严重限制，长序列无法有效批训练 |
-| **计算效率低下** | 训练时间随序列长度线性增长 |
-
-正如论文所述：
-> "The fundamental constraint of sequential computation, however, remains."
-
-\subsubsection*{1.2 本文要解决什么具体问题？}
-
-本文提出解决**如何在保持高质量翻译的同时，大幅提升序列模型的并行计算效率**的问题。
-
-具体目标：
 \begin{itemize}
-  \item 消除循环层（RNN/LSTM/GRU）带来的顺序依赖
-  \item 用**注意力机制（Attention Mechanism）** 完全替代循环结构
-  \item 在机器翻译任务上达到或超越当时最优的模型质量
-  \item 显著减少训练时间
+  \item \textbf{顺序计算的瓶颈}：RNN 的隐藏状态 $h_t$ 必须按顺序依次计算（$h_t = f(h_{t-1}, x_t)$），这意味着无法在训练样本内部进行并行化处理。
+  \item \textbf{长距离依赖问题}：尽管 LSTM 和 GRU 通过门控机制部分缓解了梯度消失问题，但学习序列中相距较远位置之间的依赖关系仍然困难。
+  \item \textbf{内存约束}：由于需要维护完整的隐藏状态序列，内存限制严重制约了跨样本的批处理能力。
 \end{itemize}
 
-\subsubsection*{1.3 为什么这个问题重要？}
+\subsubsection*{1.2 本文要解决的核心问题}
+
+本文旨在\textbf{完全消除循环连接和卷积操作}，仅依靠\textbf{注意力机制（Attention Mechanism）}来构建序列转导模型，从而：
 
 \begin{enumerate}
-  \item **并行化是深度学习扩展的关键**：GPU/TPU的并行计算能力无法被RNN充分利用
-  \item **翻译系统的实际应用需求**：需要更快的训练和推理速度
-  \item **长距离依赖是NLP的核心挑战**：RNN难以有效建模远距离语义关系
-  \item **该方法具有通用性**：解决此问题的方法可能适用于其他序列建模任务
+  \item \textbf{实现高度并行化}：打破顺序计算的桎梏
+  \item \textbf{缩短路径长度}：使任意两个位置之间的信息传递路径长度为常数 $O(1)$
+  \item \textbf{提升训练效率}：在更短时间内达到更好的模型质量
+\end{enumerate}
+
+\subsubsection*{1.3 问题的重要性}
+
+这篇文章的重要性体现在以下几个方面：
+
+\begin{itemize}
+  \item \textbf{范式转变}：首次证明仅靠注意力机制就能构建强大的序列到序列模型
+  \item \textbf{实际价值}：在翻译任务上以极低的计算成本达到新的最优性能
+  \item \textbf{深远影响}：Transformer 架构成为后续几乎所有大型语言模型（如 BERT、GPT 系列）的基础
 \end{itemize}
 
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{2. 相关工作梳理}
 
-\subsubsection*{2.1 之前的工作做了什么？}
+\subsubsection*{2.1 既有工作的回顾}
 
-| 模型 | 年份 | 主要贡献 | 核心架构 |
-|------|------|---------|---------|
-| **Seq2Seq + Attention** | 2014 | 首次将注意力机制引入NMT | RNN + Bahdanau Attention |
-| **GNMT** | 2016 | Google大规模NMT系统 | 8层LSTM + Attention |
-| **ConvS2S** | 2017 | 使用卷积替代RNN | CNN + Multi-hop Attention |
-| **ByteNet** | 2017 | 线性时间复杂度翻译 | Dilated CNN |
-| **Neural GPU** | 2016 | 可并行化的计算模型 | 卷积架构 |
-| **Self-Attention** | - | 用于阅读理解、摘要等任务 | Attention-only |
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+工作类型 & 代表模型 & 主要贡献 \\
+\hline
+\textbf{循环架构} & LSTM/GRU & 通过门控机制捕捉长距离依赖 \\
+\hline
+\textbf{注意力机制} & Bahdanau Attention & 首次将注意力用于机器翻译的对齐 \\
+\hline
+\textbf{卷积架构} & ByteNet, ConvS2S & 并行计算，但路径长度随距离增长 \\
+\hline
+\textbf{记忆网络} & End-to-End Memory Networks & 基于注意力的记忆机制 \\
+\hline
+\end{tabular}
+\end{center}
 
-\subsubsection*{2.2 它们的局限性}
+\subsubsection*{2.2 既有工作的局限性}
 
-**RNN-based 模型（GNMT等）：**
 \begin{itemize}
-  \item 无法并行化：时间步必须顺序处理
-  \item 长距离依赖学习困难
-  \item 训练时间极长（数周）
+  \item \textbf{RNN 及其变体}：顺序计算本质限制了并行化和长序列处理能力
+  \item \textbf{卷积模型}（ByteNet, ConvS2S）：虽然支持并行，但连接任意两个位置需要 $O(\log_k(n))$（ByteNet）或 $O(n/k)$（ConvS2S）层堆叠
+  \item \textbf{混合模型}：即使加入注意力机制，仍依赖 RNN 进行序列建模
 \end{itemize}
 
-**CNN-based 模型（ConvS2S, ByteNet）：**
-\begin{itemize}
-  \item 虽然可并行，但建立远距离依赖需要多层堆叠
-  \item ConvS2S：路径长度 $O(n)$
-  \item ByteNet：路径长度 $O(\log_k(n))$（使用膨胀卷积）
-  \item 计算成本随卷积核大小增加
-\end{itemize}
+\subsubsection*{2.3 本文与既有工作的区别}
 
-**传统注意力机制：**
-\begin{itemize}
-  \item 大多作为RNN的附加组件，而非核心
-  \item 无法独立完成序列建模
-\end{itemize}
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+特性 & 传统方法 & Transformer \\
+\hline
+\textbf{序列建模方式} & 循环 & 自注意力 \\
+\hline
+\textbf{路径长度} & $O(n)$（RNN）或 $O(\log_k(n))$（CNN） & $O(1)$ \\
+\hline
+\textbf{并行化能力} & 有限 & 高度并行 \\
+\hline
+\textbf{计算复杂度} & $O(n \cdot d^2)$ & $O(n^2 \cdot d)$ \\
+\hline
+\end{tabular}
+\end{center}
 
-\subsubsection*{2.3 本文与它们的区别}
+\textbf{Transformer 是首个完全基于自注意力、摒弃序列对齐循环的转导模型。}
 
-| 特性 | 本文方法 (Transformer) | 传统方法 (RNN/CNN) |
-|------|----------------------|-------------------|
-| **核心架构** | 纯注意力机制 | RNN/CNN + 注意力 |
-| **路径长度** | $O(1)$ 常数 | $O(n)$ 或 $O(\log(n))$ |
-| **并行化程度** | 完全并行 | 部分并行 |
-| **长距离依赖** | 直接建模 | 需要多层/门控 |
-| **训练效率** | 12小时（8 GPU） | 数天至数周 |
-
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{3. 核心方法详解}
 
-\subsubsection*{3.1 整体架构}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig1_p3.png}
+\end{figure}
 
-Transformer采用经典的**Encoder-Decoder**结构，但完全用注意力机制实现：
+\subsubsection*{3.1 整体架构概述}
 
-```
-输入序列 (x₁, ..., xₙ)
-↓
-[Encoder]
-6层堆叠
-↓
-连续表示 z = (z₁, ..., zₙ)
-↓
-[Decoder]
-6层堆叠
-↓
-输出序列 (y₁, ..., yₘ)
-```
+Transformer 采用经典的 \textbf{Encoder-Decoder} 结构，但完全基于\textbf{自注意力机制}和\textbf{位置前馈网络}构建。
 
-**Transformer整体架构图示：**
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig1_p3.png}
+\end{figure}
 
-```
-Encoder Stack (N=6 layers)
-┌─────────────────────────────────────────┐
-│  Input Embedding + Positional Encoding  │
-├─────────────────────────────────────────┤
-│  Layer 1: Multi-Head Self-Attention     │
-│         + Feed-Forward (Residual+LN)    │
-├─────────────────────────────────────────┤
-│  Layer 2: (same structure)...            │
-│  ...                                    │
-├─────────────────────────────────────────┤
-│  Layer 6: (same structure)               │
-└─────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────┐
-│  Decoder Stack (N=6 layers)             │
-├─────────────────────────────────────────┤
-│  Output Embedding + Positional Encoding  │
-├─────────────────────────────────────────┤
-│  Layer 1: Masked Self-Attention          │
-│         + Encoder-Decoder Attention      │
-│         + Feed-Forward (Residual+LN)     │
-├─────────────────────────────────────────┤
-│  Layer 2-6: (same structure)...          │
-├─────────────────────────────────────────┤
-│  Linear + Softmax                        │
-└─────────────────────────────────────────┘
-```
+\begin{verbatim}
+┌─────────────────────────────────────────────────────────────────┐
+│                        TRANSFORMER                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Input    ┌──────┐                                              │
+│  Tokens → │Embed │→ ┌─────────────────┐                         │
+│           └──────┘  │   Encoder (×6)   │ → Encoder Output       │
+│                      │                 │                        │
+│                      │ Multi-Head      │                        │
+│                      │ Self-Attention  │                        │
+│                      │     +           │                        │
+│                      │ Feed-Forward    │                        │
+│                      └─────────────────┘                        │
+│                                ↓                                │
+│           ┌──────────────────────────────┐                     │
+│           │      Decoder (×6)            │                     │
+│           │                              │                     │
+│           │  Masked Multi-Head           │                     │
+│           │  Self-Attention              │                     │
+│           │       +                      │                     │
+│           │  Encoder-Decoder            │ → Output            │
+│           │  Multi-Head Attention        │    Probabilities    │
+│           │       +                      │                     │
+│           │  Feed-Forward                │                     │
+│           └──────────────────────────────┘                     │
+│                                                               │
+└─────────────────────────────────────────────────────────────────┘
+\end{verbatim}
 
-\subsubsection*{3.2 Encoder组件详解}
+\subsubsection*{3.2 Encoder 详解}
 
-\paragraph{3.2.1 编码器结构}
+Encoder 由 \textbf{N = 6 个相同的层}堆叠而成，每层包含两个子层：
 
-每个编码器层包含两个**子层（Sub-layer）**：
+\paragraph{3.2.1 多头自注意力机制（Multi-Head Self-Attention）}
 
-```python
-\section*{伪代码表示}
-class EncoderLayer:
-def \_\_init\_\_(self):
-self.self\_attention = MultiHeadAttention()
-self.feed\_forward = PositionwiseFFN()
-self.norm1 = LayerNorm()
-self.norm2 = LayerNorm()
+\textbf{设计动机}：允许模型同时关注来自不同表示子空间和不同位置的信息。
 
-def forward(self, x):
-\section*{子层1：多头自注意力 + 残差连接}
-attn\_output = self.self\_attention(x)
-x = self.norm1(x + attn\_output)
+\textbf{工作原理}：
 
-\section*{子层2：前馈网络 + 残差连接}
-ff\_output = self.feed\_forward(x)
-x = self.norm2(x + ff\_output)
+\begin{enumerate}
+  \item 将输入分别线性投影到 $h$ 个不同的子空间（$h = 8$）
+  \item 在每个子空间并行执行注意力计算
+  \item 拼接所有头的输出并再次线性投影
+\end{enumerate}
 
-return x
-```
+\paragraph{3.2.2 位置前馈网络（Position-wise Feed-Forward Network）}
 
-**残差连接公式：**
+对每个位置独立应用相同的两层全连接网络：
+
+\[
+\text{FFN}(x) = \max(0, xW_1 + b_1)W_2 + b_2
+\]
+
+其中：
+\begin{itemize}
+  \item 输入/输出维度：$d_{\text{model}} = 512$
+  \item 内部层维度：$d_{ff} = 2048$
+\end{itemize}
+
+\paragraph{3.2.3 残差连接与层归一化}
+
+每个子层采用\textbf{残差连接}（Residual Connection）：
+
 \[
 \text{Output} = \text{LayerNorm}(x + \text{Sublayer}(x))
 \]
 
-\subsubsection*{3.3 Decoder组件详解}
+这确保了即使网络很深，梯度也能有效流动。
 
-解码器层包含**三个子层**：
+\subsubsection*{3.3 Decoder 详解}
 
-| 子层 | 功能 | 特殊处理 |
-|------|------|---------|
-| Masked Multi-Head Self-Attention | 自注意力，防止看到未来位置 | **Masking** |
-| Multi-Head Encoder-Decoder Attention | 关注编码器输出 | Q来自前一层，K,V来自Encoder |
-| Position-wise Feed-Forward Network | 非线性变换 | 同Encoder |
+Decoder 同样由 \textbf{N = 6 个相同的层}组成，但每层包含\textbf{三个子层}：
 
-**Masking机制**（保持自回归性质）：
+\begin{enumerate}
+  \item \textbf{掩码多头自注意力（Masked Multi-Head Self-Attention）}
+\end{enumerate}
 \begin{itemize}
-  \item 将"非法"注意力权重设置为 $-\infty$
-  \item 确保位置 $i$ 的预测只依赖位置 $< i$ 的已知输出
+  \item 防止位置 $i$ 关注到其之后的任何位置
+  \item 通过将非法连接的注意力权重设为 $-\infty$ 实现
+\end{itemize}
+
+\begin{enumerate}
+  \item \textbf{编码器-解码器注意力（Encoder-Decoder Attention）}
+\end{enumerate}
+\begin{itemize}
+  \item Query 来自前一个解码器层
+  \item Key 和 Value 来自编码器输出
+  \item 允许解码器每个位置关注输入序列的所有位置
+\end{itemize}
+
+\begin{enumerate}
+  \item \textbf{位置前馈网络}
+\end{enumerate}
+\begin{itemize}
+  \item 与 Encoder 中相同
 \end{itemize}
 
 \subsubsection*{3.4 注意力机制详解}
 
-\paragraph{3.4.1 Scaled Dot-Product Attention（缩放点积注意力）}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig2_p4.png}
+\end{figure}
 
-**核心思想**：将注意力视为**查询（Query）**对**键值对（Key-Value）**的检索。
+\paragraph{3.4.1 缩放点积注意力（Scaled Dot-Product Attention）}
 
-**输入**：
-\begin{itemize}
-  \item Query: $\mathbf{Q} \in \mathbb{R}^{n \times d_k}$
-  \item Key: $\mathbf{K} \in \mathbb{R}^{m \times d_k}$
-  \item Value: $\mathbf{V} \in \mathbb{R}^{m \times d_v}$
-\end{itemize}
+\textbf{核心公式}：
 
-**公式**：
 \[
-\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}
-\]
-
-**计算流程图解：**
-
-```
-Query Q (n×dk)     Key K (m×dk)      Value V (m×dv)
-│                  │                  │
-└──────────────────┴──────────────────┘
-│
-▼
-┌───────────────┐
-│  QK\textasciicircum{}T / √dk   │  ← 计算点积并缩放
-└───────────────┘
-│
-▼
-┌───────────────┐
-│   Softmax     │  ← 归一化得到注意力权重
-└───────────────┘
-│
-▼
-┌───────────────┐
-│    × V       │  ← 加权求和
-└───────────────┘
-│
-▼
-Output (n×dv)
-```
-
-**为什么需要缩放（Scaling）？**
-
-当 $d_k$ 较大时，点积的值会变得很大，导致softmax进入饱和区，梯度极小。
-
-数学解释：
-\begin{itemize}
-  \item 假设 $q$ 和 $k$ 的分量是均值0、方差1的独立随机变量
-  \item 则 $q \cdot k = \sum_{i=1}^{d_k} q_i k_i$ 的均值为0，方差为 $d_k$
-  \item 除以 $\sqrt{d_k}$ 可将方差归一化为1
-\end{itemize}
-
-\paragraph{3.4.2 Multi-Head Attention（多头注意力）}
-
-**设计动机**：
-\begin{itemize}
-  \item 单一注意力头只能关注一种"表示子空间"
-  \item 不同注意力头可以学习不同的相关性模式
-  \item 允许模型同时关注不同位置的不同表示子空间
-\end{itemize}
-
-**公式**：
-\[
-\text{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, ..., \text{head}_h)\mathbf{W}^O
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
 \]
 
 其中：
+\begin{itemize}
+  \item $Q \in \mathbb{R}^{n \times d_k}$：查询矩阵
+  \item $K \in \mathbb{R}^{m \times d_k}$：键矩阵
+  \item $V \in \mathbb{R}^{m \times d_v}$：值矩阵
+  \item $d_k$：查询/键的维度
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig2_p4.png}
+\end{figure}
+
+\textbf{为什么需要缩放？}
+
+当 $d_k$ 较大时，点积 $q \cdot k$ 的方差增长到 $d_k$，导致 softmax 函数进入饱和区，梯度极小。
+
 \[
-\text{head}_i = \text{Attention}(\mathbf{Q}\mathbf{W}_i^Q, \mathbf{K}\mathbf{W}_i^K, \mathbf{V}\mathbf{W}_i^V)
+\text{Var}(q \cdot k) = d_k
 \]
 
-**投影矩阵维度**：
+通过除以 $\sqrt{d_k}$，将方差归一化到 1。
+
+\paragraph{3.4.2 多头注意力（Multi-Head Attention）}
+
+\textbf{核心公式}：
+
 \[
-\mathbf{W}_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}, \quad
-\mathbf{W}_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}, \quad
-\mathbf{W}_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}, \quad
-\mathbf{W}^O \in \mathbb{R}^{hd_v \times d_{\text{model}}}
+\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^O
 \]
 
-**本文配置**：
+其中：
+
+\[
+\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)
+\]
+
+\textbf{参数矩阵维度}：
+\begin{itemize}
+  \item $W_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}$
+  \item $W_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$
+  \item $W_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$
+  \item $W^O \in \mathbb{R}^{hd_v \times d_{\text{model}}}$
+\end{itemize}
+
+\textbf{本文配置}：
 \begin{itemize}
   \item $h = 8$ 个并行注意力头
-  \item $d_k = d_v = d_{\text{model}}/h = 512/8 = 64$
-  \item 总计算量与单头全维度注意力相似
+  \item $d_k = d_v = d_{\text{model}}/h = 64$
+  \item 总计算量与单头全维度注意力相近
 \end{itemize}
 
-**多头注意力可视化：**
+\subsubsection*{3.5 位置编码（Positional Encoding）}
 
-```
-Input Q, K, V (d\_model=512)
-│
-├───┬───┬───┬───┬───┬───┬───┬───┐
-▼   ▼   ▼   ▼   ▼   ▼   ▼   ▼   ▼
-[W₁\textasciicircum{}Q ... W₈\textasciicircum{}Q]  ← 8个不同的Query投影
-[W₁\textasciicircum{}K ... W₈\textasciicircum{}K]  ← 8个不同的Key投影
-[W₁\textasciicircum{}V ... W₈\textasciicircum{}V]  ← 8个不同的Value投影
-│   │   │   │   │   │   │   │
-▼   ▼   ▼   ▼   ▼   ▼   ▼   ▼   ▼
-┌─────────────────────────────────────────┐
-│  Attention Attention ... Attention     │
-│  Head 1   Head 2   ...   Head 8        │ ← 并行计算
-└─────────────────────────────────────────┘
-│   │   │   │   │   │   │   │
-▼   ▼   ▼   ▼   ▼   ▼   ▼   ▼
-┌─────────────────────────────────────────┐
-│           Concat (8 × 64 = 512)         │
-└─────────────────────────────────────────┘
-│
-▼
-┌───────────────┐
-│    W\textasciicircum{}O        │  ← 最终投影
-└───────────────┘
-│
-▼
-Output (d\_model=512)
-```
+由于 Transformer 不包含循环和卷积，必须\textbf{显式注入位置信息}。
 
-\paragraph{3.4.3 三种注意力应用}
+\paragraph{3.5.1 正弦/余弦位置编码}
 
-| 位置 | Query来源 | Key/Value来源 | 作用 |
-|------|----------|--------------|------|
-| **Encoder Self-Attention** | Encoder前一层 | Encoder前一层 | 建模输入序列内部依赖 |
-| **Decoder Self-Attention** | Decoder前一层（带Mask） | Decoder前一层 | 建模输出序列内部依赖（仅过去） |
-| **Encoder-Decoder Attention** | Decoder前一层 | Encoder最终输出 | 对齐源序列与目标序列 |
-
-\subsubsection*{3.5 Position-wise Feed-Forward Networks}
-
-每个位置独立应用相同的两层全连接网络：
-
-\[
-\text{FFN}(x) = \max(0, x\mathbf{W}_1 + b_1)\mathbf{W}_2 + b_2
-\]
-
-**等效于核大小为1的两个卷积**：
-\begin{itemize}
-  \item 内层维度：$d_{ff} = 2048$（base模型）
-  \item 激活函数：ReLU
-  \item 外层维度：$d_{\text{model}} = 512$
-\end{itemize}
-
-\subsubsection*{3.6 Positional Encoding（位置编码）}
-
-由于模型不含循环和卷积，需要**显式注入位置信息**。
-
-**正弦/余弦位置编码**：
 \[
 PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
 \]
+
 \[
 PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
 \]
 
-**设计动机**：
+其中：
 \begin{itemize}
-  \item 波长从 $2\pi$ 到 $10000 \cdot 2\pi$ 的几何级数
-  \item 可以表示任意固定偏移 $k$ 的相对位置：$PE_{pos+k}$ 可线性表示为 $PE_{pos}$ 的函数
-  \item 可处理训练时未见过的更长序列
+  \item $pos$：位置（0, 1, 2, ...）
+  \item $i$：维度索引（0, 1, 2, ..., $d_{\text{model}}/2$）
 \end{itemize}
 
-**位置编码图示：**
+\textbf{设计动机}：对于任意固定偏移 $k$，$PE_{pos+k}$ 可以表示为 $PE_{pos}$ 的\textbf{线性函数}，便于模型学习相对位置依赖。
 
-```
-位置 → 维度编码
-0   1   2   3   4   5   6   7  (d\_model维度)
-pos=1 [sin,cos,sin,cos,sin,cos,sin,cos]
-pos=2 [sin,cos,sin,cos,sin,cos,sin,cos]
-pos=3 [sin,cos,sin,cos,sin,cos,sin,cos]
-...
-```
+\paragraph{3.5.2 与其他方法的对比}
 
-\subsubsection*{3.7 复杂度分析}
+实验表明，学习到的位置嵌入与正弦位置编码效果相近。选择正弦编码是因为它能\textbf{外推到比训练时更长的序列}。
 
-| 层类型 | 每层复杂度 | 顺序操作数 | 最大路径长度 |
-|--------|-----------|-----------|-------------|
-| Self-Attention | $O(n^2 \cdot d)$ | $O(1)$ | $O(1)$ |
-| Recurrent | $O(n \cdot d^2)$ | $O(n)$ | $O(n)$ |
-| Convolutional | $O(k \cdot n \cdot d^2)$ | $O(1)$ | $O(\log_k(n))$ |
+\subsubsection*{3.6 复杂度分析}
 
-**关键洞察**：当序列长度 $n$ 小于表示维度 $d$ 时（这在大多数实际应用中常见），自注意力的计算效率高于循环层。
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+层类型 & 每层复杂度 & 最小顺序操作数 & 最大路径长度 \\
+\hline
+\textbf{自注意力} & $O(n^2 \cdot d)$ & $O(1)$ & $O(1)$ \\
+\hline
+\textbf{循环层} & $O(n \cdot d^2)$ & $O(n)$ & $O(n)$ \\
+\hline
+\textbf{卷积层} & $O(k \cdot n \cdot d^2)$ & $O(1)$ & $O(\log_k(n))$ \\
+\hline
+\end{tabular}
+\end{center}
 
-\subsubsection*{3.8 训练细节}
-
-\paragraph{3.8.1 优化器}
-
-使用**Adam优化器**，配合**学习率预热策略**：
-
-\[
-lrate = d_{\text{model}}^{-0.5} \cdot \min\left(step\_num^{-0.5}, step\_num \cdot warmup\_steps^{-1.5}\right)
-\]
-
-**预热阶段**：4000步内线性增加学习率
-**衰减阶段**：按步数的平方根倒数衰减
-
-\paragraph{3.8.2 正则化}
-
-\begin{enumerate}
-  \item **残差Dropout**：$P_{drop} = 0.1$
-  \item 对每个子层输出应用dropout
-  \item 对embedding与positional encoding之和应用dropout
-\end{itemize}
-
-\begin{enumerate}
-  \item **标签平滑**：$\epsilon_{ls} = 0.1$
-  \item 改善困惑度但提升BLEU
-\end{itemize}
-
-\paragraph{3.8.3 模型变体配置}
-
-| 模型 | N | $d_{\text{model}}$ | $d_{ff}$ | h | $d_k$ | $d_v$ |
-|------|---|-------------------|----------|---|-------|-------|
-| Base | 6 | 512 | 2048 | 8 | 64 | 64 |
-| Big | 6 | 1024 | 4096 | 16 | 64 | 64 |
-
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{4. 实验设计与结果分析}
 
-\subsubsection*{4.1 数据集和评估指标}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig2_p4.png}
+\end{figure}
 
-**数据集：**
+\subsubsection*{4.1 数据集与评估指标}
 
-| 任务 | 句子对数量 | 词表大小 | 分词方法 |
-|------|-----------|---------|---------|
-| WMT 2014 English-German | \textasciitilde{}4.5M | 37,000 | BPE |
-| WMT 2014 English-French | \textasciitilde{}36M | 32,000 | Word-piece |
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+任务 & 数据集 & 词汇量 & 句子对数量 \\
+\hline
+\textbf{英德翻译} & WMT 2014 & \textasciitilde{}37,000 BPE tokens & \textasciitilde{}450万对 \\
+\hline
+\textbf{英法翻译} & WMT 2014 & \textasciitilde{}32,000 word-piece & \textasciitilde{}3600万对 \\
+\hline
+\end{tabular}
+\end{center}
 
-**评估指标：**
-\begin{itemize}
-  \item **BLEU (Bilingual Evaluation Understudy)**：机器翻译的标准评估指标
-\end{itemize}
-
-**训练设置：**
-\begin{itemize}
-  \item 硬件：8 NVIDIA P100 GPUs
-  \item Base模型：每步0.4秒，训练100,000步（\textasciitilde{}12小时）
-  \item Big模型：每步1.0秒，训练300,000步（\textasciitilde{}3.5天）
-\end{itemize}
+\textbf{评估指标}：BLEU 分数（机器翻译的标准评估指标）
 
 \subsubsection*{4.2 主实验结果}
 
-\paragraph{4.2.1 WMT 2014 English-to-German}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig2_p4.png}
+\end{figure}
 
-| 模型 | BLEU | 训练成本 (FLOPs) |
-|------|------|------------------|
-| ByteNet | 23.75 | - |
-| GNMT + RL | 24.6 | 2.3 × 10¹⁹ |
-| ConvS2S | 25.16 | 9.6 × 10¹⁸ |
-| MoE | 26.03 | 2.0 × 10¹⁹ |
-| Deep-Att + PosUnk Ensemble | 40.4 | 8.0 × 10²⁰ |
-| GNMT + RL Ensemble | 26.30 | 1.8 × 10²⁰ |
-| ConvS2S Ensemble | 26.36 | 7.7 × 10¹⁹ |
-| **Transformer (base)** | **27.3** | **3.3 × 10¹⁸** |
-| **Transformer (big)** | **28.4** | **2.3 × 10¹⁹** |
+\paragraph{4.2.1 机器翻译性能}
 
-**关键发现**：
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+模型 & 英德 BLEU & 英法 BLEU & 训练成本 (FLOPs) \\
+\hline
+ByteNet & 23.75 & - & - \\
+\hline
+GNMT + RL & 24.6 & 39.92 & $2.3 \times 10^{19}$ \\
+\hline
+ConvS2S & 25.16 & 40.46 & $9.6 \times 10^{18}$ \\
+\hline
+MoE & 26.03 & 40.56 & $2.0 \times 10^{19}$ \\
+\hline
+\textbf{Transformer (base)} & \textbf{27.3} & \textbf{38.1} & $3.3 \times 10^{18}$ \\
+\hline
+\textbf{Transformer (big)} & \textbf{28.4} & \textbf{41.8} & $2.3 \times 10^{19}$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{关键发现}：
 \begin{itemize}
-  \item Big模型比所有先前最佳模型（包括集成）**高2.0 BLEU**
-  \item 训练成本**仅为GNMT的约千分之一**
+  \item \textbf{Transformer (big)} 在英德翻译上比之前最优模型\textbf{提升超过 2 BLEU}
+  \item 训练成本仅为最佳模型的\textbf{一小部分}
+  \item 仅用 \textbf{3.5 天在 8 块 P100 GPU} 上完成训练
 \end{itemize}
 
-\paragraph{4.2.2 WMT 2014 English-to-French}
+\paragraph{4.2.2 注意力可视化}
 
-| 模型 | BLEU | 训练成本 (FLOPs) |
-|------|------|------------------|
-| GNMT + RL | 39.92 | 1.4 × 10²⁰ |
-| ConvS2S | 40.46 | 1.5 × 10²⁰ |
-| MoE | 40.56 | 1.2 × 10²⁰ |
-| ConvS2S Ensemble | 41.29 | 1.2 × 10²¹ |
-| **Transformer (base)** | **38.1** | **3.3 × 10¹⁸** |
-| **Transformer (big)** | **41.8** | **2.3 × 10¹⁹** |
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig2_p4.png}
+\end{figure}
 
-**关键发现**：
-\begin{itemize}
-  \item Big模型建立**新的单模型最高BLEU记录 41.8**
-  \item 训练成本仅为最佳模型的**约1/4**
-\end{itemize}
+论文提供了注意力权重的可视化分析，揭示了模型学习到的重要语言现象：
+
+\begin{enumerate}
+  \item \textbf{长距离依赖捕捉}：编码器第5层的注意力头能够关注到远距离的相关词（如 "making" 与 "more difficult"）
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{fig2_p4.png}
+\end{figure}
+
+\begin{enumerate}
+  \item \textbf{指代消解}：某些注意力头专门负责处理代词与其指代对象的对应关系
+\end{enumerate}
+
+\begin{enumerate}
+  \item \textbf{句法结构学习}：不同注意力头学习到与句子结构相关的模式
+\end{enumerate}
 
 \subsubsection*{4.3 消融实验分析}
 
-\paragraph{4.3.1 注意力头数和维度的影响（表3-A）}
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+实验配置 & BLEU (dev) & PPL \\
+\hline
+\textbf{Base Model} & 25.8 & 4.92 \\
+\hline
+(A) 单头注意力 & 24.9 & 5.29 \\
+\hline
+(A) 16头, dk=dv=32 & 25.4 & 5.01 \\
+\hline
+(B) dk=16 & 25.1 & 5.16 \\
+\hline
+(C) 4层 & 23.7 & 6.11 \\
+\hline
+(C) 8层 & 25.5 & 4.88 \\
+\hline
+(D) 无 Dropout & 24.6 & 5.77 \\
+\hline
+(E) 学习位置编码 & 25.7 & 4.92 \\
+\hline
+\textbf{Big Model} & 26.4 & 4.33 \\
+\hline
+\end{tabular}
+\end{center}
 
-| 配置 | h | $d_k = d_v$ | PPL | BLEU |
-|------|---|-------------|-----|------|
-| base | 8 | 64 | 4.92 | 25.8 |
-| 1头 | 1 | 512 | 5.29 | 24.9 |
-| 4头 | 4 | 128 | 5.00 | 25.5 |
-| 16头 | 16 | 32 | 5.01 | 25.4 |
-| 32头 | 32 | 16 | 5.01 | 25.4 |
+\textbf{消融实验关键发现}：
 
-**分析**：
-\begin{itemize}
-  \item 单头注意力比最佳配置低0.9 BLEU
-  \item 过多注意力头反而降低性能
-  \item 8头是性能和效率的平衡点
-\end{itemize}
+\begin{enumerate}
+  \item \textbf{注意力头数量}：8头效果最佳，过多或过少都会导致性能下降
+  \item \textbf{键维度 dk}：较小的 dk（如 16）会损害模型性能
+  \item \textbf{模型深度}：6层是性能和计算成本的良好平衡
+  \item \textbf{Dropout}：正则化对防止过拟合至关重要
+  \item \textbf{位置编码}：正弦编码与学习编码效果相近
+\end{enumerate}
 
-\paragraph{4.3.2 Key维度的影响（表3-B）}
+\subsubsection*{4.4 泛化能力验证：句法分析}
 
-| $d_k$ | PPL | BLEU |
-|-------|-----|------|
-| 64 | 4.92 | 25.8 |
-| 32 | 5.16 | 25.1 |
-| 16 | 5.01 | 25.4 |
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+模型 & 训练设置 & WSJ F1 \\
+\hline
+Vinyals \& Kaiser et al. & WSJ only & 88.3 \\
+\hline
+Dyer et al. (RNNG) & WSJ only & 91.7 \\
+\hline
+\textbf{Transformer (4层)} & WSJ only & \textbf{91.3} \\
+\hline
+Dyer et al. (RNNG) & 半监督 & 93.3 \\
+\hline
+\textbf{Transformer (4层)} & 半监督 & \textbf{92.7} \\
+\hline
+\end{tabular}
+\end{center}
 
-**分析**：减小key维度会损害模型质量，暗示兼容性函数比简单点积更复杂可能有益。
+\textbf{关键发现}：Transformer 在\textbf{无任务特定调优}的情况下，在 constituency parsing 任务上取得竞争力结果，证明其强大的泛化能力。
 
-\paragraph{4.3.3 模型大小的缩放（表3-C）}
-
-| N | $d_{\text{model}}$ | $d_{ff}$ | 参数(M) | PPL | BLEU |
-|---|-------------------|----------|---------|-----|------|
-| 2 | 256 | 1024 | 28 | 6.11 | 23.7 |
-| 4 | 256 | 1024 | 50 | 5.19 | 25.3 |
-| 4 | 512 | 1024 | 80 | 4.88 | 25.5 |
-| 6 | 1024 | 4096 | 168 | 4.66 | 26.0 |
-
-**分析**：更大的模型和更深/更宽的网络都能带来性能提升。
-
-\paragraph{4.3.4 Dropout的影响（表3-D）}
-
-| Dropout | PPL | BLEU |
-|---------|-----|------|
-| 0.0 | 5.77 | 24.6 |
-| 0.1 | 4.92 | 25.8 |
-| 0.2 | 4.95 | 25.5 |
-
-**分析**：Dropout对防止过拟合至关重要，0.1是最佳值。
-
-\paragraph{4.3.5 位置编码比较（表3-E）}
-
-| 位置编码 | BLEU |
-|----------|------|
-| Sinusoidal | 25.8 |
-| Learned | 25.7 |
-
-**分析**：两种方法性能几乎相同，选择正弦波是因为可以外推到更长序列。
-
-\subsubsection*{4.4 泛化实验：English Constituency Parsing}
-
-| Parser | 设置 | F1 |
-|--------|------|-----|
-| Transformer (4 layers) | WSJ only | **91.3** |
-| Vinyals \& Kaiser et al. | WSJ only | 88.3 |
-| Petrov et al. | WSJ only | 90.4 |
-| Dyer et al. | WSJ only | 91.7 |
-| Transformer (4 layers) | semi-supervised | **92.7** |
-| Dyer et al. | semi-supervised | 93.3 |
-
-**关键发现**：
-\begin{itemize}
-  \item 仅用WSJ数据（40K句子），Transformer超越大多数模型
-  \item 证明Transformer可迁移到其他序列任务
-  \item 特别在小数据场景表现优异
-\end{itemize}
-
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{5. 优缺点评价}
 
-\subsubsection*{5.1 本文的主要优点}
+\subsubsection*{5.1 主要优点}
 
 \begin{enumerate}
-  \item **革命性的架构创新**
-  \item 首次完全用注意力机制替代循环/卷积结构
-  \item 打破了RNN在序列建模中的垄断地位
-\end{itemize}
+  \item \textbf{高度并行化}：完全消除顺序依赖，训练速度大幅提升
+  \item \textbf{路径长度常数化}：$O(1)$ 的最大路径长度使其能有效捕捉长距离依赖
+  \item \textbf{可解释性增强}：注意力权重提供了模型决策的直观可视化
+  \item \textbf{泛化能力强}：在完全不同的任务（翻译→句法分析）上表现优异
+  \item \textbf{计算效率高}：在保持/提升性能的同时显著降低训练成本
+\end{enumerate}
+
+\subsubsection*{5.2 主要局限性}
 
 \begin{enumerate}
-  \item **卓越的并行计算效率**
-  \item 训练时间从数周缩短到数小时
-  \item 可充分利用GPU/TPU的并行能力
-\end{itemize}
-
-\begin{enumerate}
-  \item **有效建模长距离依赖**
-  \item 任意位置间的路径长度为常数 $O(1)$
-  \item 解决了RNN的梯度消失问题
-\end{itemize}
-
-\begin{enumerate}
-  \item **高质量翻译性能**
-  \item WMT EN-DE: 28.4 BLEU（超越所有集成模型）
-  \item WMT EN-FR: 41.8 BLEU（新纪录）
-  \item 泛化能力强，可用于其他NLP任务
-\end{itemize}
-
-\begin{enumerate}
-  \item **优雅且可解释的设计**
-  \item 多头注意力可可视化
-  \item 不同注意力头学习不同任务
-  \item 可解释性强
-\end{itemize}
-
-\subsubsection*{5.2 本文的局限性}
-
-\begin{enumerate}
-  \item **计算复杂度随序列长度平方增长**
-  \item 自注意力的复杂度为 $O(n^2 \cdot d)$
-  \item 对于极长序列（如文档、音频）计算成本过高
-  \item 论文提到可用"受限注意力"（$O(r \cdot n \cdot d)$）缓解
-\end{itemize}
-
-\begin{enumerate}
-  \item **位置编码的局限**
-  \item 正弦/余弦编码是手工设计，可能非最优
-  \item 学习得到的相对位置表示可能更有效
-  \item （后续工作如BERT使用了学习的位置嵌入）
-\end{itemize}
-
-\begin{enumerate}
-  \item **全局信息的代价**
-  \item 缺乏局部性的归纳偏置
-  \item 对于需要局部模式的任务（如音频、图像），可能需要更多参数或数据
-  \item （后续工作如Vision Transformer也证明了其可行性）
-\end{itemize}
+  \item \textbf{二次方复杂度}：自注意力的 $O(n^2)$ 复杂度使其难以处理极长序列
+  \item \textbf{位置编码的局限}：虽然正弦编码支持外推，但对绝对位置的表示可能不够灵活
+  \item \textbf{归纳偏置缺失}：相比 CNN 和 RNN，Transformer 对序列结构的假设更少，可能需要更多数据来学习
+\end{enumerate}
 
 \subsubsection*{5.3 可能的改进方向}
 
 \begin{enumerate}
-  \item **层次化注意力**：处理超长序列
-  \item **相对位置编码**：如Transformer-XL、RoPE等
-  \item **稀疏/线性注意力**：如Linformer、Performer等
-  \item **融合局部和全局注意力**：如BigBird等
-  \item **跨模态扩展**：用于图像、语音、视频等
-\end{itemize}
+  \item \textbf{高效注意力机制}：Sparse Attention、Linear Attention、FlashAttention 等
+  \item \textbf{增强位置编码}：相对位置编码、可学习的位置表示
+  \item \textbf{模型扩展}：更宽的模型、更深的层数、混合专家架构
+  \item \textbf{多模态扩展}：将 Transformer 应用于图像、音频、视频等其他模态
+\end{enumerate}
 
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{6. 个人思考与启发}
 
-\subsubsection*{6.1 这篇论文对我的研究有什么启发？}
+\subsubsection*{6.1 对研究的启发}
 
 \begin{enumerate}
-  \item **注意力机制是序列建模的核心**
-  \item 注意力不仅是一种"技巧"，而是足以支撑整个模型的核心机制
-  \item 应当深入理解注意力机制的数学本质和优化特性
-\end{itemize}
+  \item \textbf{注意力优先的设计理念}：Transformer 证明了注意力机制可以作为序列建模的\textbf{唯一基础}，而非辅助工具。这一思想深刻影响了后续预训练语言模型的设计。
+\end{enumerate}
 
 \begin{enumerate}
-  \item **简化可以带来突破**
-  \item 去除复杂的RNN结构，回归简单的注意力机制
-  \item "简单即美"的设计哲学
-  \item 有时看似"复古"的方法配合现代优化技术可以焕发新生
-\end{itemize}
+  \item \textbf{简单性与效率的平衡}：通过移除复杂的循环和卷积结构，Transformer 以更简洁的架构实现了更好的性能。这提醒我们在模型设计中追求\textbf{优雅和高效}。
+\end{enumerate}
 
 \begin{enumerate}
-  \item **理论分析与工程实践的结合**
-  \item 对路径长度、计算复杂度的理论分析
-  \item 为实践选择提供指导
-\end{itemize}
+  \item \textbf{缩放的重要性}：这篇论文开启了大型语言模型（LLM）时代的序幕，展示了模型规模与性能之间的 scaling law。
+\end{enumerate}
 
-\subsubsection*{6.2 可以借鉴的思想和技术}
+\subsubsection*{6.2 可借鉴的思想和技术}
 
 \begin{enumerate}
-  \item **Multi-Head Attention设计**
-  \item 多个注意力头捕获不同特征
-  \item 分治思想的应用
-\end{itemize}
+  \item \textbf{多头注意力的设计}：将注意力分散到多个子空间，增强了模型捕捉多样化依赖的能力
+  \item \textbf{残差连接与层归一化}：这些技术的组合成为现代深度学习模型的标配
+  \item \textbf{学习率调度}：warmup + inverse square root decay 策略被广泛采用
+  \item \textbf{Label Smoothing}：提升泛化能力的简单技巧
+\end{enumerate}
+
+\subsubsection*{6.3 可能的 Follow-up 研究方向}
 
 \begin{enumerate}
-  \item **残差连接 + LayerNorm**
-  \item 解决深层网络的训练困难
-  \item 已成为现代深度学习的标准组件
-\end{itemize}
+  \item \textbf{高效 Transformer}：解决 $O(n^2)$ 复杂度问题，支持更长序列
+  \item \textbf{轻量化 Transformer}：知识蒸馏、量化、剪枝等技术
+  \item \textbf{Transformer 的理论分析}：理解其表达能力、泛化性质
+  \item \textbf{跨模态 Transformer}：视觉Transformer（ViT）、多模态大模型
+\end{enumerate}
 
-\begin{enumerate}
-  \item **学习率预热策略**
-  \item 对Transformer等深层模型尤为重要
-  \item 可推广到其他深层网络
-\end{itemize}
-
-\begin{enumerate}
-  \item **标签平滑**
-  \item 改善泛化能力的简单技巧
-\end{itemize}
-
-\begin{enumerate}
-  \item **模型变体的系统消融分析**
-  \item 科学的研究方法
-  \item 逐步验证每个组件的贡献
-\end{itemize}
-
-\subsubsection*{6.3 可能的Follow-up研究方向}
-
-| 方向 | 问题 | 可能的改进 |
-|------|------|-----------|
-| **高效注意力** | $O(n^2)$ 复杂度 | Linformer, Performer, FlashAttention |
-| **更好的位置编码** | 相对位置建模 | RoPE, ALiBi, T5 Relative Attention |
-| **更通用的Transformer** | 视觉、语音任务 | ViT, Speech Transformer |
-| **更深更宽的模型** | 扩展性 | MoE, Switch Transformer |
-| **轻量化模型** | 部署效率 | DistilBERT, MobileBERT, TinyBERT |
-| **预训练+微调范式** | 迁移学习 | BERT, GPT, T5 |
-
-\subsubsection*{6.4 论文的历史意义}
-
-这篇论文的重要性远超其原始任务——机器翻译。它奠定了**现代NLP的基石**：
-
-\begin{itemize}
-  \item **BERT (2018)**：使用Transformer编码器进行预训练
-  \item **GPT系列 (2018-2023)**：使用Transformer解码器
-  \item **T5 (2019)**：统一所有NLP任务为文本到文本
-  \item **ViT (2020)**：将Transformer扩展到计算机视觉
-  \item **大语言模型 (2020-至今)**：GPT-3, PaLM, LLaMA等
-\end{itemize}
-
-可以说，**"Attention is All You Need"这篇论文开启了深度学习的新时代**。
-
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{7. 关键词与核心概念}
 
-| 关键词/概念 | 简要解释 |
-|-----------|---------|
-| **Transformer** | 完全基于注意力机制的序列到序列模型架构 |
-| **Self-Attention** | 输入序列内部各位置之间的注意力，用于建模内部依赖关系 |
-| **Scaled Dot-Product Attention** | 缩放点积注意力，通过Query-Key-Value机制计算注意力权重 |
-| **Multi-Head Attention** | 多头注意力，多个并行注意力机制以捕获不同子空间的信息 |
-| **Encoder-Decoder Architecture** | 编码器-解码器结构，先编码输入再解码输出 |
-| **Positional Encoding** | 位置编码，注入序列位置信息以弥补模型对位置的不感知 |
-| **Residual Connection** | 残差连接，缓解深层网络的训练困难 |
-| **Layer Normalization** | 层归一化，稳定训练过程 |
-| **Feed-Forward Network** | 前馈神经网络，位置-wise的非线性变换 |
-| **Masked Attention** | 掩码注意力，防止解码器看到未来信息 |
-| **BLEU** | Bilingual Evaluation Understudy，机器翻译评估指标 |
-| **Sequence Transduction** | 序列转导，将一个序列转换为另一个序列的任务 |
-| **Auto-regressive** | 自回归，生成时依赖之前生成的符号 |
-| **Parallelization** | 并行化，同时处理多个计算任务 |
-| **Long-range Dependency** | 长距离依赖，相距较远的元素之间的依赖关系 |
-| **Word-piece/Subword** | 子词分词方法，处理未登录词问题 |
-| **Beam Search** | 束搜索，翻译推理时的解码策略 |
-| **Label Smoothing** | 标签平滑，正则化技术 |
-| **Adam Optimizer** | 自适应矩估计优化器 |
-| **Learning Rate Scheduling** | 学习率调度策略 |
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+术语 & 解释 \\
+\hline
+\textbf{Transformer} & 完全基于注意力机制的序列到序列模型架构 \\
+\hline
+\textbf{Self-Attention} & 自注意力，允许序列内任意位置相互attend的机制 \\
+\hline
+\textbf{Multi-Head Attention} & 多头注意力，并行执行多个注意力函数，增强表示能力 \\
+\hline
+\textbf{Scaled Dot-Product Attention} & 缩放点积注意力，通过除以 $\sqrt{d_k}$ 防止梯度消失 \\
+\hline
+\textbf{Encoder-Decoder} & 编码器-解码器结构，先编码输入序列，再解码生成输出 \\
+\hline
+\textbf{Positional Encoding} & 位置编码，为无位置信息的注意力机制注入序列位置信息 \\
+\hline
+\textbf{Residual Connection} & 残差连接，缓解深层网络训练困难的经典技术 \\
+\hline
+\textbf{Layer Normalization} & 层归一化，稳定训练过程的归一化技术 \\
+\hline
+\textbf{BLEU} & Bilingual Evaluation Understudy，机器翻译的标准评估指标 \\
+\hline
+\textbf{Sequence Transduction} & 序列转导，将一个序列转换为另一个序列的任务 \\
+\hline
+\textbf{Feed-Forward Network} & 前馈神经网络，Transformer 中每个位置独立应用的全连接网络 \\
+\hline
+\textbf{Auto-regressive} & 自回归，生成时依赖先前生成的符号 \\
+\hline
+\textbf{Masked Attention} & 掩码注意力，防止看到未来信息的注意力机制 \\
+\hline
+\textbf{Label Smoothing} & 标签平滑，用软标签替代硬标签的正则化技术 \\
+\hline
+\end{tabular}
+\end{center}
 
----
+\vspace{0.5em}\noindent\rule{\textwidth}{0.4pt}\vspace{0.5em}
 
 \subsection*{附录：核心公式汇总}
 
-\begin{enumerate}
-  \item **Scaled Dot-Product Attention**
+\textbf{缩放点积注意力}：
 \[
-\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
 \]
-\end{itemize}
 
-\begin{enumerate}
-  \item **Multi-Head Attention**
+\textbf{多头注意力}：
 \[
-\text{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, ..., \text{head}_h)\mathbf{W}^O
+\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^O
 \]
-\end{itemize}
 
-\begin{enumerate}
-  \item **Position-wise FFN**
+\textbf{前馈网络}：
 \[
-\text{FFN}(x) = \max(0, x\mathbf{W}_1 + b_1)\mathbf{W}_2 + b_2
+\text{FFN}(x) = \max(0, xW_1 + b_1)W_2 + b_2
 \]
-\end{itemize}
 
-\begin{enumerate}
-  \item **Residual Connection + Layer Normalization**
+\textbf{学习率调度}：
+\[
+lrate = d_{\text{model}}^{-0.5} \cdot \min(step\_num^{-0.5}, step\_num \cdot warmup\_steps^{-1.5})
+\]
+
+\textbf{残差连接}：
 \[
 \text{Output} = \text{LayerNorm}(x + \text{Sublayer}(x))
 \]
-\end{itemize}
-
-\begin{enumerate}
-  \item **Learning Rate Schedule**
-\[
-lrate = d_{\text{model}}^{-0.5} \cdot \min\left(step\_num^{-0.5}, step\_num \cdot warmup\_steps^{-1.5}\right)
-\]
-\end{itemize}
-
-\begin{enumerate}
-  \item **Sinusoidal Positional Encoding**
-\[
-PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
-\]
-\[
-PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
-\]
-\end{itemize}
-
----
-
-> **笔记总结**：这篇论文是深度学习领域的里程碑工作，首次证明了"注意力机制"足以支撑强大的序列建模能力，摒弃了传统的循环结构。Transformer不仅在机器翻译任务上取得了突破性的成果，更重要的是，它开创了现代NLP的新时代，为后续BERT、GPT等划时代模型奠定了基础。
 
 \end{document}

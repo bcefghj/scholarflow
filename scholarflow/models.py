@@ -30,6 +30,9 @@ class PaperFigure:
     path: Path
     caption: str = ""
     page: int = 0
+    figure_id: str = ""  # e.g. "fig1", "fig2"
+    width: int = 0
+    height: int = 0
 
 
 @dataclass

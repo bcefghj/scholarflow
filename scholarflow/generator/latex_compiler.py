@@ -48,12 +48,13 @@ def _compile_pdflatex(tex_path: Path, output_dir: Path) -> Path:
             [
                 "pdflatex",
                 "-interaction=nonstopmode",
-                f"-output-directory={output_dir}",
-                str(tex_path),
+                f"-output-directory={output_dir.resolve()}",
+                tex_path.name,
             ],
             capture_output=True,
             text=True,
             timeout=120,
+            cwd=str(tex_path.parent.resolve()),
         )
     pdf_name = tex_path.stem + ".pdf"
     pdf_path = output_dir / pdf_name
@@ -68,12 +69,13 @@ def _compile_xelatex(tex_path: Path, output_dir: Path) -> Path:
             [
                 "xelatex",
                 "-interaction=nonstopmode",
-                f"-output-directory={output_dir}",
-                str(tex_path),
+                f"-output-directory={output_dir.resolve()}",
+                tex_path.name,
             ],
             capture_output=True,
             text=True,
             timeout=120,
+            cwd=str(tex_path.parent.resolve()),
         )
     pdf_name = tex_path.stem + ".pdf"
     pdf_path = output_dir / pdf_name

@@ -27,229 +27,354 @@
 
 \begin{frame}{Attention Is All You Need}
 
+
 \begin{itemize}
 
-    \item Ashish Vaswani, Noam Shazeer, Niki Parmar 等
+    \item Transformer: 完全基于注意力机制的新型网络架构
 
-    \item Google Brain \& Google Research
+    \item Ashish Vaswani, Noam Shazeer, Niki Parmar 等 Google 团队
 
-    \item 31st Conference on Neural Information Processing Systems (NeurIPS 2017)
+    \item NeurIPS 2017 (2017年12月)
 
-    \item arXiv:1706.03762
+    \item 首次提出摒弃RNN和卷积，仅使用注意力机制进行序列建模
+
+    \item 开创了深度学习自然语言处理的新时代
 
 \end{itemize}
+
 
 \end{frame}
 
 
 \begin{frame}{研究背景与动机}
 
+
 \begin{itemize}
 
-    \item 序列转导模型长期依赖RNN(LSTM/GRU)和CNN架构
+    \item RNN、LSTM和GRU是序列建模的主流方法
 
-    \item RNN存在固有顺序性，难以并行化，长序列计算受限
+    \item RNN的顺序计算特性限制了并行化能力
 
-    \item CNN虽可并行，但远距离依赖需要多层堆叠才能建立
+    \item 序列越长，内存约束越严重，批处理困难
 
-    \item 注意力机制虽已成功应用，但仍需配合RNN使用
+    \item 注意力机制可建模任意距离的依赖关系
 
-    \item 核心问题：能否用纯注意力机制替代循环和卷积？
+    \item 现有模型将注意力与RNN结合，非纯注意力架构
 
 \end{itemize}
+
 
 \end{frame}
 
 
 \begin{frame}{相关工作}
 
+
 \begin{itemize}
 
-    \item Neural GPU、ByteNet、ConvS2S：使用CNN减少顺序计算
+    \item ByteNet和ConvS2S使用卷积实现并行计算
+
+    \item 但连接任意位置的操作数随距离线性或对数增长
 
     \item Self-attention已用于阅读理解、摘要等任务
 
-    \item 端到端记忆网络基于注意力机制
+    \item 端到端记忆网络基于注意力而非时序循环
 
-    \item 本文首次提出完全基于自注意力的转导模型
+    \item Transformer是首个完全基于自注意力的模型
 
 \end{itemize}
+
 
 \end{frame}
 
 
-\begin{frame}{Transformer模型架构}
+\begin{frame}{Transformer 架构概览}
+
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
 
 \begin{itemize}
 
     \item 采用标准的Encoder-Decoder结构
 
-    \item Encoder：6层堆叠，每层包含Multi-Head Self-Attention + Feed-Forward
+    \item 完全基于注意力机制，摒弃循环和卷积
 
-    \item Decoder：6层堆叠，包含Masked Self-Attention + Encoder-Decoder Attention + Feed-Forward
+    \item 堆叠6层相同的Encoder和Decoder模块
 
-    \item 所有子层输出维度dmodel=512
+    \item 每个子层使用残差连接和层归一化
 
-    \item 使用残差连接和层归一化：LayerNorm(x + Sublayer(x))
+    \item 所有子层输出维度 dmodel = 512
 
 \end{itemize}
+
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{fig1_p3.png}
+
+\vspace{2mm}
+{\tiny The Transformer - model architecture.}
+
+\end{column}
+\end{columns}
 
 \end{frame}
 
 
-\begin{frame}{注意力机制：缩放点积注意力}
+\begin{frame}{注意力机制：Scaled Dot-Product Attention}
+
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
 
 \begin{itemize}
 
-    \item 输入：Query Q、Key K、Value V，维度分别为dk, dk, dv
+    \item 输入：Query Q, Key K, Value V 三个向量
 
-    \item 计算公式：Attention(Q,K,V) = softmax(QK\textasciicircum{}T / √dk)V
+    \item 计算Q与所有K的点积，除以√dk进行缩放
 
-    \item 除以√dk防止点积值过大导致softmax梯度消失
+    \item 应用softmax获得注意力权重
 
-    \item 点积注意力比加法注意力速度更快、空间效率更高
+    \item 公式：Attention(Q,K,V) = softmax(QKT/√dk)V
+
+    \item 缩放因子防止点积过大导致梯度消失
 
 \end{itemize}
+
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{fig2_p4.png}
+
+\vspace{2mm}
+{\tiny Multi-head attention allows the model to jointly attend to information from diff}
+
+\end{column}
+\end{columns}
 
 \end{frame}
 
 
-\begin{frame}{多头注意力机制}
+\begin{frame}{多头注意力机制 (Multi-Head Attention)}
+
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
 
 \begin{itemize}
 
-    \item 将Q、K、V分别投影h次到dk、dk、dv维度
+    \item 将Q、K、V投影到h个不同的子空间（h=8）
 
-    \item 并行执行h个注意力函数，输出维度hdv
+    \item 每个头维度 dk = dv = dmodel/h = 64
 
-    \item 本文使用h=8，dk=dv=64（总维度保持dmodel=512）
+    \item 并行计算各头的注意力后拼接
 
-    \item 多头注意力允许模型同时关注不同表示子空间的信息
+    \item 公式：MultiHead(Q,K,V) = Concat(head1,...,headh)WO
 
-    \item MultiHead(Q,K,V) = Concat(head1,...,headh)W\textasciicircum{}O
+    \item 多头机制允许同时关注不同表示子空间的信息
 
 \end{itemize}
+
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{fig2_p4.png}
+
+\vspace{2mm}
+{\tiny Multi-head attention allows the model to jointly attend to information from diff}
+
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}{Transformer 中的三种注意力应用}
+
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+
+\begin{itemize}
+
+    \item Encoder Self-Attention: 所有K、V、Q来自同一位置
+
+    \item Decoder Self-Attention: 防止看向后续位置（Masking）
+
+    \item Encoder-Decoder Attention: Q来自Decoder，K、V来自Encoder
+
+    \item Decoder采用Masked Attention确保自回归特性
+
+    \item 实现了输入输出序列的全局依赖建模
+
+\end{itemize}
+
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{fig1_p3.png}
+
+\vspace{2mm}
+{\tiny The Transformer - model architecture.}
+
+\end{column}
+\end{columns}
 
 \end{frame}
 
 
 \begin{frame}{位置编码与前馈网络}
 
+
 \begin{itemize}
 
-    \item Transformer无循环和卷积，需显式注入位置信息
+    \item 使用正弦/余弦函数生成位置编码
 
-    \item 使用正弦/余弦函数编码：PE(pos,2i)=sin(pos/10000\textasciicircum{}(2i/dmodel))
+    \item PE(pos,2i) = sin(pos/100002i/dmodel)
 
-    \item 位置编码与词嵌入维度相同，可直接相加
+    \item PE(pos,2i+1) = cos(pos/100002i/dmodel)
 
-    \item 前馈网络：FFN(x) = max(0, xW1+b1)W2+b2，内层维度dff=2048
+    \item 前馈网络：FFN(x) = max(0, xW1+b1)W2+b2
+
+    \item 位置编码维度与词嵌入相同，可直接相加
 
 \end{itemize}
+
+
+\end{frame}
+
+
+\begin{frame}{实验设置}
+
+
+\begin{itemize}
+
+    \item WMT 2014 English-German: 约450万句子对
+
+    \item WMT 2014 English-French: 3600万句子对
+
+    \item 使用Byte-pair Encoding (BPE) 进行分词
+
+    \item 训练硬件：8块 NVIDIA P100 GPU
+
+    \item 基础模型训练12小时，大模型训练3.5天
+
+\end{itemize}
+
 
 \end{frame}
 
 
 \begin{frame}{机器翻译实验结果}
 
+
 \begin{itemize}
 
-    \item WMT 2014 英德翻译：BLEU 28.4，超越此前最佳模型2+ BLEU
+    \item English-German: 28.4 BLEU (state-of-the-art)
 
-    \item WMT 2014 英法翻译：BLEU 41.8，新单模型最高分
+    \item English-French: 41.8 BLEU (state-of-the-art)
 
-    \item 训练仅需3.5天，8块P100 GPU
+    \item 比此前最佳模型提升超过2 BLEU
 
-    \item 显著低于其他模型的训练成本（FLOPs减少数十倍）
+    \item 训练成本仅为最佳模型的1/4
+
+    \item 基础模型也超越所有此前发布的单模型
 
 \end{itemize}
+
 
 \end{frame}
 
 
-\begin{frame}{与其他模型对比}
+\begin{frame}{模型变种与消融分析}
+
 
 \begin{itemize}
 
-    \item 英德翻译：Transformer big超越所有集成模型
+    \item 多头注意力中，头数过多或过少都会降低性能
 
-    \item 英法翻译：Transformer big远优于GNMT、ConvS2S等
+    \item 减小attention key维度会损害模型质量
 
-    \item 训练成本：Transformer仅为GNMT的1/24（英法）
+    \item 更大的模型和适当的dropout有助于性能提升
 
-    \item 基础模型也已超越所有先前发布的单模型
+    \item 位置编码：正弦编码与学习编码效果相当
+
+    \item 模型深度增加显著提升BLEU分数
 
 \end{itemize}
+
 
 \end{frame}
 
 
-\begin{frame}{泛化能力：英文成分句法分析}
+\begin{frame}{泛化能力：英文 constituency 解析}
+
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
 
 \begin{itemize}
 
-    \item 仅在WSJ数据集（40K句子）训练：F1=91.3
+    \item 仅用WSJ数据集(40K句子)训练即可超越Berkeley Parser
 
-    \item 半监督设置（17M句子）：F1=92.7
+    \item 半监督设置下达到92.7 F1分数
 
-    \item 超越BerkeleyParser等先前最佳模型
+    \item 证明Transformer具有强大的任务泛化能力
 
-    \item 证明了Transformer良好的任务泛化能力
+    \item 输出结构化结果，无需任务特定的调参
+
+    \item 验证了模型对长距离依赖的有效建模
 
 \end{itemize}
+
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{fig3_p4.png}
+
+\vspace{2mm}
+{\tiny An example of the attention mechanism following long-distance dependencies in th}
+
+\end{column}
+\end{columns}
 
 \end{frame}
 
 
-\begin{frame}{模型变体与消融分析}
+\begin{frame}{总结与展望}
 
-\begin{itemize}
-
-    \item 注意力头数：8头最佳，过多或过少均会降低性能
-
-    \item Key维度dk：减小dk会损害模型质量
-
-    \item 模型规模：更大的模型和更多的dropout有助于防止过拟合
-
-    \item 位置编码：学习的位置编码与正弦编码效果相近
-
-\end{itemize}
-
-\end{frame}
-
-
-\begin{frame}{总结与未来展望}
 
 \begin{itemize}
 
     \item Transformer是完全基于注意力机制的序列转导模型
 
-    \item 在翻译质量上达到SOTA，且训练速度显著提升
+    \item 可并行化训练，显著缩短训练时间
 
-    \item 可泛化到其他NLP任务（如句法分析）
+    \item 在翻译任务上达到新的最佳性能
 
-    \item 未来方向：扩展到图像/音频等模态，研究局部受限注意力
+    \item 未来方向：处理图像、音频等非文本模态
+
+    \item 探索局部注意力机制以处理更长序列
 
 \end{itemize}
+
 
 \end{frame}
 
 
-\begin{frame}{参考文献}
+\begin{frame}{关键参考文献}
+
 
 \begin{itemize}
 
-    \item [1] Vaswani et al. Attention Is All You Need. NeurIPS, 2017.
+    \item [2] Bahdanau et al., Neural Machine Translation by Jointly Learning to Align and Translate, 2014
 
-    \item [2] Bahdanau et al. Neural Machine Translation by Jointly Learning to Align and Translate. ICLR, 2015.
+    \item [9] Gehring et al., Convolutional Sequence to Sequence Learning, 2017
 
-    \item [3] Hochreiter \& Schmidhuber. Long Short-Term Memory. Neural Computation, 1997.
+    \item [18] Kalchbrenner et al., Neural Machine Translation in Linear Time, 2017
 
-    \item [4] Cho et al. Learning Phrase Representations using RNN Encoder-Decoder. EMNLP, 2014.
+    \item [35] Sutskever et al., Sequence to Sequence Learning with Neural Networks, 2014
 
-    \item [5] Gehring et al. Convolutional Sequence to Sequence Learning. ICML, 2017.
+    \item [38] Wu et al., Google's Neural Machine Translation System, 2016
 
 \end{itemize}
+
 
 \end{frame}
 

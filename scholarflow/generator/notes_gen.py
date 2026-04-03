@@ -1,14 +1,15 @@
-"""Generate study notes as LaTeX PDF."""
+"""Generate study notes as LaTeX PDF with embedded figures."""
 
 from __future__ import annotations
 
-import re
+import shutil
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
 from scholarflow.generator.latex_compiler import compile_latex
-from scholarflow.models import PaperContent
+from scholarflow.generator.md2latex import md_to_latex
+from scholarflow.models import PaperContent, PaperFigure
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates" / "notes"
 
@@ -22,6 +23,9 @@ def generate_notes(
 ) -> Path:
     """Generate study notes LaTeX and compile to PDF."""
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy figures to output dir and build path mapping
+    figure_paths = _prepare_figures(content.figures, output_dir)
 
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -39,13 +43,16 @@ def generate_notes(
         "deep": "深度学习笔记" if lang == "zh" else "Deep Study Notes",
         "exam": "考试复习笔记" if lang == "zh" else "Exam Review Notes",
         "quick": "快速笔记" if lang == "zh" else "Quick Notes",
+        "grandma": "老奶奶通俗讲解" if lang == "zh" else "ELI5 Grandma Explains",
     }
 
+    body_latex = md_to_latex(notes_text, figure_paths=figure_paths)
+
     tex_content = tmpl.render(
-        title=_escape_latex(content.meta.title),
-        authors=_escape_latex(", ".join(content.meta.authors)),
+        title=_escape_title(content.meta.title),
+        authors=_escape_title(", ".join(content.meta.authors)),
         mode_label=mode_labels.get(mode, mode),
-        body=_md_to_latex_notes(notes_text),
+        body=body_latex,
         lang=lang,
     )
 
@@ -59,92 +66,26 @@ def generate_notes(
         return tex_path
 
 
-def _escape_latex(text: str) -> str:
+def _escape_title(text: str) -> str:
     if not text:
         return ""
-    for char, repl in [("\\", r"\textbackslash{}"), ("&", r"\&"), ("%", r"\%"),
-                        ("#", r"\#"), ("_", r"\_"), ("{", r"\{"), ("}", r"\}"),
-                        ("~", r"\textasciitilde{}"), ("^", r"\textasciicircum{}")]:
+    for char, repl in [
+        ("\\", r"\textbackslash{}"), ("&", r"\&"), ("%", r"\%"),
+        ("#", r"\#"), ("_", r"\_"), ("{", r"\{"), ("}", r"\}"),
+        ("~", r"\textasciitilde{}"), ("^", r"\textasciicircum{}"),
+    ]:
         text = text.replace(char, repl)
     return text
 
 
-def _md_to_latex_notes(md: str) -> str:
-    """Convert Markdown notes to LaTeX, preserving math blocks."""
-    lines = md.split("\n")
-    result = []
-    in_math = False
-    in_list = False
-
-    for line in lines:
-        stripped = line.strip()
-
-        if stripped.startswith("$$"):
-            in_math = not in_math
-            result.append("\\[" if in_math else "\\]")
+def _prepare_figures(figures: list[PaperFigure], output_dir: Path) -> dict[str, str]:
+    """Copy figure files to output dir; return {fig_id: relative_path}."""
+    mapping: dict[str, str] = {}
+    for fig in figures:
+        if not fig.path.exists():
             continue
-
-        if in_math:
-            result.append(stripped)
-            continue
-
-        if stripped.startswith("#### "):
-            if in_list:
-                result.append("\\end{itemize}")
-                in_list = False
-            result.append(f"\\paragraph{{{_escape_latex(stripped[5:])}}}")
-        elif stripped.startswith("### "):
-            if in_list:
-                result.append("\\end{itemize}")
-                in_list = False
-            result.append(f"\\subsubsection*{{{_escape_latex(stripped[4:])}}}")
-        elif stripped.startswith("## "):
-            if in_list:
-                result.append("\\end{itemize}")
-                in_list = False
-            result.append(f"\\subsection*{{{_escape_latex(stripped[3:])}}}")
-        elif stripped.startswith("# "):
-            if in_list:
-                result.append("\\end{itemize}")
-                in_list = False
-            result.append(f"\\section*{{{_escape_latex(stripped[2:])}}}")
-        elif stripped.startswith("- ") or stripped.startswith("* "):
-            if not in_list:
-                result.append("\\begin{itemize}")
-                in_list = True
-            bullet_text = stripped[2:]
-            bullet_text = _process_inline_math(bullet_text)
-            result.append(f"  \\item {bullet_text}")
-        elif re.match(r"^\d+\.\s", stripped):
-            item = re.sub(r"^\d+\.\s", "", stripped)
-            if not in_list:
-                result.append("\\begin{enumerate}")
-                in_list = True
-            result.append(f"  \\item {_process_inline_math(item)}")
-        elif stripped == "":
-            if in_list:
-                result.append("\\end{itemize}" if in_list else "\\end{enumerate}")
-                in_list = False
-            result.append("")
-        else:
-            if in_list:
-                result.append("\\end{itemize}")
-                in_list = False
-            result.append(_process_inline_math(stripped))
-
-    if in_list:
-        result.append("\\end{itemize}")
-
-    return "\n".join(result)
-
-
-def _process_inline_math(text: str) -> str:
-    """Keep $...$ math intact, escape the rest."""
-    parts = re.split(r"(\$[^$]+\$)", text)
-    processed = []
-    for part in parts:
-        if part.startswith("$") and part.endswith("$"):
-            processed.append(part)
-        else:
-            processed.append(_escape_latex(part))
-    return "".join(processed)
+        dest = output_dir / fig.path.name
+        if not dest.exists():
+            shutil.copy2(fig.path, dest)
+        mapping[fig.figure_id] = fig.path.name
+    return mapping

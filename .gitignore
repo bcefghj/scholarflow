@@ -33,3 +33,6 @@ Thumbs.db
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+*.nav
+*.snm
+run_demo.py

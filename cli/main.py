@@ -40,7 +40,7 @@ def full(
     verbosity: Optional[str] = typer.Option(None, "--verbosity", "-v", help="concise/normal/detailed"),
     theme: Optional[str] = typer.Option(None, "--theme", help="PPT theme"),
     beamer_theme: Optional[str] = typer.Option(None, "--beamer-theme", help="Beamer theme"),
-    notes_mode: str = typer.Option("deep", "--notes-mode", "-n", help="Notes mode: deep/exam/quick"),
+    notes_mode: str = typer.Option("deep", "--notes-mode", "-n", help="Notes mode: deep/exam/quick/grandma"),
 ) -> None:
     """Generate ALL outputs from a paper (summary + PPT + script + notes + mindmap + poster + translation)."""
     from scholarflow.pipeline import run_full_pipeline
@@ -127,9 +127,9 @@ def notes(
     output: str = typer.Option("./output", "--output", "-o"),
     model: Optional[str] = typer.Option(None, "--model", "-m"),
     lang: Optional[str] = typer.Option(None, "--lang", "-l"),
-    mode: str = typer.Option("deep", "--mode", "-n", help="deep / exam / quick"),
+    mode: str = typer.Option("deep", "--mode", "-n", help="deep / exam / quick / grandma"),
 ) -> None:
-    """Generate study notes (LaTeX PDF). Modes: deep, exam, quick."""
+    """Generate study notes (LaTeX PDF). Modes: deep, exam, quick, grandma (ELI5)."""
     from scholarflow.pipeline import run_full_pipeline
 
     inputs = _input_options(pdf, title, arxiv, doi)

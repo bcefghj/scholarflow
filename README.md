@@ -32,7 +32,7 @@
 | 📊 汇报PPT | .pptx | 10-15页，3套主题，可在PowerPoint/WPS直接编辑 |
 | 🎭 Beamer幻灯片 | .pdf (LaTeX) | 学术风格，支持Madrid/Berlin等多种主题 |
 | 🎤 PPT讲解稿 | .pdf (LaTeX) | 每页PPT对应讲解文字，拿着就能讲 |
-| 📝 学习笔记 | .pdf (LaTeX) | 三种模式: 深度学习 / 考试复习 / 快速笔记 |
+| 📝 学习笔记 | .pdf (LaTeX) | 四种模式: 深度学习 / 考试复习 / 快速笔记 / 🧓老奶奶通俗讲解 |
 | 🧠 思维导图 | .html | 交互式Markmap可视化 |
 | 🖼️ 学术海报 | .html | A0横版学术海报 |
 | 🌐 双语翻译 | Markdown | 中英双语摘要 + 关键术语对照 |
@@ -41,7 +41,7 @@
 
 ## 示例: Attention Is All You Need (Transformer 经典论文)
 
-以下所有内容均由 ScholarFlow 使用 MiniMax M2.7 模型自动生成，**非人工编写**。
+以下所有内容均由 ScholarFlow 使用 MiniMax M2.7 模型自动生成，**非人工编写**。所有输出均**图文并茂**，自动提取论文中的架构图、实验结果图等嵌入到PPT、Beamer、笔记、海报中。
 
 ```bash
 sf full --arxiv 1706.03762 --lang zh --model minimax/MiniMax-M2.7
@@ -73,7 +73,7 @@ sf full --arxiv 1706.03762 --lang zh --model minimax/MiniMax-M2.7
 
 ### 📊 2. 汇报PPT ([下载 .pptx](examples/attention_is_all_you_need/slides.pptx))
 
-自动生成13页PPT，包含封面、背景动机、方法详解、实验结果、消融分析、总结展望等完整结构。
+自动生成13页PPT，**自动嵌入论文中的架构图和实验结果图**，采用**左文右图**的专业布局。包含封面、背景动机、方法详解、实验结果、消融分析、总结展望等完整结构。
 
 **PPT结构:**
 | 页码 | 标题 |
@@ -98,7 +98,7 @@ sf full --arxiv 1706.03762 --lang zh --model minimax/MiniMax-M2.7
 
 ### 🎭 3. Beamer幻灯片 ([查看 PDF](examples/attention_is_all_you_need/beamer.pdf))
 
-LaTeX Beamer格式的学术幻灯片，支持 Madrid / Berlin / Singapore / CambridgeUS 等多种经典 Beamer 主题。适合学术会议风格的正式演示。
+LaTeX Beamer格式的学术幻灯片，**自动嵌入论文图表**（使用`\includegraphics` + `columns`左文右图布局），支持 Madrid / Berlin / Singapore / CambridgeUS 等多种经典 Beamer 主题。适合学术会议风格的正式演示。
 
 ---
 
@@ -114,22 +114,28 @@ LaTeX Beamer格式的学术幻灯片，支持 Madrid / Berlin / Singapore / Camb
 
 ---
 
-### 📝 5. 学习笔记 ([查看 PDF](examples/attention_is_all_you_need/notes_deep.pdf))
+### 📝 5. 学习笔记
 
-深度学习笔记包含：
-- 研究背景与问题定义
-- 相关工作梳理
-- 核心方法详解（含数学公式推导）
-- 实验设计与结果分析
-- 优缺点评价
-- 个人思考与启发
-- 关键词与核心概念
+**四种笔记模式，满足不同需求：**
 
-**三种笔记模式:**
+| 模式 | 说明 | 示例 |
+|------|------|------|
+| 🔬 深度学习 (`deep`) | 全面深入，含公式推导、实验分析、个人思考，**嵌入论文图表** | [查看 PDF](examples/attention_is_all_you_need/notes_deep.pdf) |
+| 📚 考试复习 (`exam`) | 核心知识点、公式汇总、易混淆概念、5道自测题 | `sf notes paper.pdf --mode exam` |
+| ⚡ 快速笔记 (`quick`) | 1-2页极致精炼，只记最重要的 | `sf notes paper.pdf --mode quick` |
+| 🧓 老奶奶讲论文 (`grandma`) | **通俗易懂的ELI5风格**，用生活比喻、故事讲论文，小白也能看懂 | [查看 PDF](examples/attention_is_all_you_need/notes_grandma.pdf) |
+
+**老奶奶模式特色：**
+- 用买菜、排队、聊天等生活比喻解释复杂概念
+- 像奶奶和孙子聊天一样亲切自然的语气
+- 绝不堆砌术语，每个概念第一次出现都用大白话解释
+- 关键术语对照表（术语 → 大白话解释）
+
 ```bash
 sf notes paper.pdf --mode deep    # 深度学习笔记 (全面深入)
 sf notes paper.pdf --mode exam    # 考试复习笔记 (公式+自测题)
 sf notes paper.pdf --mode quick   # 快速笔记 (1-2页精炼)
+sf notes paper.pdf --mode grandma # 🧓 老奶奶通俗讲解 (ELI5)
 ```
 
 ---
@@ -144,7 +150,7 @@ sf notes paper.pdf --mode quick   # 快速笔记 (1-2页精炼)
 
 ### 🖼️ 7. 学术海报 ([查看 HTML](examples/attention_is_all_you_need/poster.html))
 
-A0横版学术海报，包含 Introduction、Method、Results、Conclusion、References 等完整模块，精美的蓝色渐变设计。
+A0横版学术海报，**自动嵌入论文中的图表**（base64内联），包含 Introduction、Method、Results、Figures、Conclusion、References 等完整模块，精美的蓝色渐变设计。
 
 浏览器中打开 `poster.html` 即可查看。
 
@@ -280,7 +286,7 @@ sf config show/set           # 配置管理
 | `--output, -o` | 输出目录 |
 | `--theme` | PPT主题 |
 | `--beamer-theme` | Beamer主题 |
-| `--notes-mode, -n` | 笔记模式 (`deep` / `exam` / `quick`) |
+| `--notes-mode, -n` | 笔记模式 (`deep` / `exam` / `quick` / `grandma`) |
 
 ---
 
@@ -332,7 +338,7 @@ clawhub install scholarflow
 | 汇报PPT (.pptx) | ✅ | ✅ | ❌ | ❌ | ✅ |
 | Beamer幻灯片 | ✅ | ❌ | ✅ | ❌ | ❌ |
 | PPT讲解稿 | ✅ | ❌ | ✅ | ❌ | ❌ |
-| 学习笔记 (3种模式) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 学习笔记 (4种模式+老奶奶) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 思维导图 | ✅ | ❌ | ❌ | ✅ | ❌ |
 | 学术海报 | ✅ | ✅ | ❌ | ❌ | ✅ |
 | 双语翻译 | ✅ | ❌ | ❌ | ✅ | ❌ |
@@ -402,7 +408,7 @@ ScholarFlow is the ultimate all-in-one academic paper processing tool. Give it a
 | Presentation PPT | .pptx | 10-15 slides, 3 themes, editable in PowerPoint/WPS |
 | Beamer Slides | .pdf | Academic LaTeX Beamer with multiple themes |
 | Speech Script | .pdf | Per-slide presentation notes (LaTeX) |
-| Study Notes | .pdf | 3 modes: deep / exam / quick (LaTeX) |
+| Study Notes | .pdf | 4 modes: deep / exam / quick / grandma-ELI5 (LaTeX) |
 | Mind Map | .html | Interactive Markmap visualization |
 | Academic Poster | .html | A0 landscape poster |
 | Bilingual Translation | .md | Chinese + English summary with key terms |

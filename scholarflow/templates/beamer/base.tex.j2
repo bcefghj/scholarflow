@@ -28,12 +28,34 @@
 
 <% for slide in slides %>
 \begin{frame}{<< slide.title >>}
+<% if slide.figure_path %>
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
 <% if slide.bullets %>
 \begin{itemize}
 <% for bullet in slide.bullets %>
     \item << bullet >>
 <% endfor %>
 \end{itemize}
+<% endif %>
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{<< slide.figure_path >>}
+<% if slide.figure_caption %>
+\vspace{2mm}
+{\tiny << slide.figure_caption >>}
+<% endif %>
+\end{column}
+\end{columns}
+<% else %>
+<% if slide.bullets %>
+\begin{itemize}
+<% for bullet in slide.bullets %>
+    \item << bullet >>
+<% endfor %>
+\end{itemize}
+<% endif %>
 <% endif %>
 \end{frame}
 

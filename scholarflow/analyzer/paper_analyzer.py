@@ -11,6 +11,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from scholarflow.analyzer.llm_client import llm_call
 from scholarflow.models import AnalyzedPaper, PaperContent, SlideData
+from scholarflow.parser.pdf_parser import get_figure_list_text
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -35,6 +36,8 @@ def _build_paper_context(content: PaperContent) -> dict:
     if len(text_for_llm) > 80000:
         text_for_llm = text_for_llm[:80000] + "\n... [truncated]"
 
+    figure_list = get_figure_list_text(content.figures)
+
     return {
         "title": content.meta.title,
         "authors": ", ".join(content.meta.authors),
@@ -44,6 +47,7 @@ def _build_paper_context(content: PaperContent) -> dict:
         "sections": sections_text,
         "full_text": text_for_llm,
         "num_pages": content.num_pages,
+        "figure_list": figure_list,
     }
 
 
@@ -83,7 +87,7 @@ def analyze_for_slides(
     lang: str = "zh",
     verbosity: str = "normal",
 ) -> list[SlideData]:
-    """Generate structured slide content."""
+    """Generate structured slide content with figure assignments."""
     ctx = _build_paper_context(content)
     ctx["lang"] = lang
     ctx["verbosity"] = verbosity
@@ -121,7 +125,7 @@ def analyze_for_notes(
     lang: str = "zh",
     mode: str = "deep",
 ) -> str:
-    """Generate study notes in the given mode (deep/exam/quick)."""
+    """Generate study notes in the given mode (deep/exam/quick/grandma)."""
     ctx = _build_paper_context(content)
     ctx["lang"] = lang
     template_name = f"notes_{mode}.j2"
@@ -175,6 +179,7 @@ def _parse_slides_json(raw: str) -> list[SlideData]:
                 title=item.get("title", ""),
                 bullets=item.get("bullets", []),
                 notes=item.get("notes", ""),
+                figure_path=item.get("figure_path", None),
             ))
         return slides
     except (json.JSONDecodeError, TypeError):
