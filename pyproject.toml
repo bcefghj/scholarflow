@@ -43,7 +43,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
-web = ["fastapi", "uvicorn[standard]", "python-multipart"]
+web = ["fastapi", "uvicorn[standard]", "python-multipart", "sse-starlette>=2.0.0"]
 mcp = ["fastmcp>=0.1.0"]
 all = ["scholarflow[web,mcp]"]
 

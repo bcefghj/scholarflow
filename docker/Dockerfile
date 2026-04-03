@@ -2,12 +2,18 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     curl \
+    texlive-xetex \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    fonts-wqy-microhei \
+    fontconfig \
+    && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSL https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-x86_64-unknown-linux-gnu.tar.gz \
-    | tar xz -C /usr/local/bin/
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
+    pip config set global.trusted-host mirrors.aliyun.com
 
 COPY pyproject.toml README.md LICENSE ./
 COPY scholarflow/ ./scholarflow/

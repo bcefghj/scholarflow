@@ -3,12 +3,20 @@
 \usetheme{<< theme >>}
 \usecolortheme{default}
 
+\usepackage{fontspec}
 <% if lang == "zh" %>
-\usepackage{ctex}
+\setmainfont{WenQuanYi Micro Hei}
+\setsansfont{WenQuanYi Micro Hei}
+\XeTeXlinebreaklocale "zh"
+\XeTeXlinebreakskip = 0pt plus 1pt
+<% else %>
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
 <% endif %>
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tabularx}
 
 \usepackage{hyperref}
 \setbeamertemplate{navigation symbols}{}

@@ -63,9 +63,14 @@ def md_to_latex(md: str, figure_paths: dict[str, str] | None = None) -> str:
             return
         if table_rows:
             ncols = max(len(r) for r in table_rows)
-            col_spec = "|" + "l|" * ncols
-            result.append("\\begin{center}")
-            result.append(f"\\begin{{tabular}}{{{col_spec}}}")
+            if ncols == 1:
+                col_spec = "|X|"
+            elif ncols == 2:
+                col_spec = "|l|X|"
+            else:
+                col_spec = "|l|" + "X|" * (ncols - 1)
+            result.append("{\\small")
+            result.append(f"\\begin{{tabularx}}{{\\textwidth}}{{{col_spec}}}")
             result.append("\\hline")
             for i, row in enumerate(table_rows):
                 while len(row) < ncols:
@@ -73,8 +78,8 @@ def md_to_latex(md: str, figure_paths: dict[str, str] | None = None) -> str:
                 cells = " & ".join(_escape_and_format(c) for c in row)
                 result.append(f"{cells} \\\\")
                 result.append("\\hline")
-            result.append("\\end{tabular}")
-            result.append("\\end{center}")
+            result.append("\\end{tabularx}")
+            result.append("}")
         in_table = False
         table_rows = []
         table_header_done = False

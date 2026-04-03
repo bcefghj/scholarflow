@@ -290,30 +290,120 @@ sf config show/set           # 配置管理
 
 ---
 
+## LaTeX PDF 生成说明
+
+ScholarFlow 的 Beamer 幻灯片、讲解稿、学习笔记（全部4种模式）均使用 **XeLaTeX** 编译生成高质量的 PDF 文件，而非简单的文本转 PDF。这意味着你可以获得：
+
+- 专业的学术排版（公式、表格、分栏布局）
+- 完美的中英文混排支持
+- 自动目录、页眉页脚
+- 可复制的矢量文字
+
+### Docker 部署（推荐，零配置）
+
+**Docker 镜像已内置完整的 LaTeX 环境，无需任何额外安装。** 镜像中包含：
+
+| 组件 | 作用 |
+|------|------|
+| `texlive-xetex` | XeLaTeX 编译引擎 |
+| `texlive-latex-extra` | 额外 LaTeX 宏包（tabularx, tcolorbox, fancyhdr 等） |
+| `texlive-fonts-recommended` | 推荐字体集（DejaVu 等） |
+| `fonts-wqy-microhei` | 文泉驿微米黑（中文字体，约 5MB，轻量高质量） |
+| `fontconfig` | 字体缓存管理 |
+
+直接 `docker compose up -d` 即可，LaTeX 编译开箱即用。
+
+### 本地 pip 安装（需手动安装 LaTeX）
+
+如果使用 `pip install scholarflow` 本地运行，需要手动安装 LaTeX 环境：
+
+**Ubuntu / Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install -y texlive-xetex texlive-latex-extra \
+    texlive-fonts-recommended fonts-wqy-microhei fontconfig
+sudo fc-cache -fv
+```
+
+**macOS (Homebrew):**
+```bash
+brew install --cask mactex-no-gui
+# 中文字体：macOS 自带"苹方"等中文字体，一般无需额外安装
+```
+
+**Windows:**
+1. 下载安装 [TeX Live](https://tug.org/texlive/) 或 [MiKTeX](https://miktex.org/)
+2. 安装时勾选 XeLaTeX 和中文字体支持
+3. 确保 `xelatex` 在系统 PATH 中
+
+### LaTeX 技术细节
+
+- **编译引擎**: XeLaTeX（支持 UTF-8 和 OpenType 字体）
+- **中文支持**: 使用 `fontspec` 包 + `\XeTeXlinebreaklocale "zh"` 实现中文自动断行
+- **字体方案**: 中文使用文泉驿微米黑（WenQuanYi Micro Hei），英文使用 DejaVu 系列
+- **表格处理**: 使用 `tabularx` 包，X 列自动适应页面宽度并换行，避免表格溢出
+- **模板引擎**: Jinja2 模板（`.tex.j2`），位于 `scholarflow/templates/` 目录
+
+### 验证 LaTeX 安装
+
+```bash
+# 检查 xelatex 是否可用
+xelatex --version
+
+# 检查中文字体
+fc-list :lang=zh | head -5
+
+# 快速测试编译
+echo '\documentclass{article}\usepackage{fontspec}\begin{document}Hello LaTeX\end{document}' > /tmp/test.tex
+xelatex -interaction=nonstopmode -output-directory=/tmp /tmp/test.tex
+```
+
+### 常见问题
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| `xelatex: command not found` | 未安装 TeX Live | 按上方说明安装 |
+| 中文显示为方框 | 缺少中文字体 | 安装 `fonts-wqy-microhei` 并运行 `fc-cache -fv` |
+| 表格超出页面右边界 | 旧版本未使用 tabularx | 更新到最新版本 |
+| 中文长段落不换行 | 缺少 XeTeX 断行设置 | 更新到最新版本（已内置 `\XeTeXlinebreaklocale`） |
+| Docker 构建很慢 | texlive 包较大（约 200MB） | 正常现象，首次构建需 3-5 分钟 |
+
+---
+
 ## 部署方式
 
 ### 方式1: pip安装 (最简单)
 ```bash
 pip install scholarflow
+# 需要手动安装 LaTeX 环境，见上方"LaTeX PDF 生成说明"
 sf full paper.pdf
 ```
 
-### 方式2: Docker一键部署
+### 方式2: Docker一键部署（推荐）
 ```bash
 git clone https://github.com/bcefghj/scholarflow
 cd scholarflow
 cp .env.example .env  # 填入API Key
 docker compose -f docker/docker-compose.yml up -d
 # 访问 http://localhost:8080
+# LaTeX 环境已内置，无需额外配置
 ```
 
-### 方式3: OpenClaw 小龙虾
+### 方式3: 云服务器部署（详细教程）
+
+我们提供了完整的阿里云/腾讯云服务器部署教程，从零开始，适合小白：
+
+**[>> 查看服务器部署完整教程 <<](docs/server-deploy-guide.md)**
+
+教程涵盖：服务器购买 → SSH 连接 → Docker 安装 → 项目部署 → Nginx 反向代理 → 安全组配置
+
+### 方式4: OpenClaw 小龙虾
 ```bash
 clawhub install scholarflow
 # 然后告诉小龙虾: "帮我分析论文 Attention Is All You Need"
 ```
 
-### 方式4: MCP Server (Cursor / Claude Desktop)
+### 方式5: MCP Server (Cursor / Claude Desktop)
 
 在 MCP 配置中添加:
 ```json

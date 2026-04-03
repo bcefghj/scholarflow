@@ -1,7 +1,14 @@
 \documentclass[11pt,a4paper]{article}
 
+\usepackage{fontspec}
 <% if lang == "zh" %>
-\usepackage{ctex}
+\setmainfont{WenQuanYi Micro Hei}
+\setsansfont{WenQuanYi Micro Hei}
+\XeTeXlinebreaklocale "zh"
+\XeTeXlinebreakskip = 0pt plus 1pt
+<% else %>
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
 <% endif %>
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{amsmath,amssymb}
@@ -9,6 +16,7 @@
 \usepackage{xcolor}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
+\usepackage{tabularx}
 
 \definecolor{accent}{RGB}{30,60,114}
 \titleformat{\section}{\Large\bfseries\color{accent}}{\thesection}{1em}{}

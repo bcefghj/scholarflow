@@ -46,13 +46,22 @@ def run_full_pipeline(
     beamer_theme: Optional[str] = None,
     notes_mode: str = "deep",
     generate: Optional[list[str]] = None,
+    progress_callback: Optional[object] = None,
 ) -> dict[str, Path]:
     """Run the complete pipeline and return paths to generated files.
 
     Args:
         generate: list of outputs to generate. None = all.
             Options: summary, slides, beamer, script, notes, mindmap, poster, translate
+        progress_callback: callable(step: str, message: str, progress: int) for web SSE updates
     """
+    def _emit(step: str, message: str, pct: int):
+        if progress_callback:
+            try:
+                progress_callback(step, message, pct)
+            except Exception:
+                pass
+
     cfg = SFConfig.load()
     model = model or cfg.model
     lang = lang or cfg.lang
@@ -76,6 +85,7 @@ def run_full_pipeline(
         console=console,
     ) as progress:
         # Step 1: Fetch paper
+        _emit("fetching", "正在获取论文...", 5)
         task = progress.add_task("Fetching paper...", total=None)
         local_pdf = fetch_paper(
             pdf_path=pdf_path, title=title, arxiv=arxiv, doi=doi, output_dir=out
@@ -83,6 +93,7 @@ def run_full_pipeline(
         progress.update(task, completed=True, description="[green]Paper fetched")
 
         # Step 2: Parse PDF
+        _emit("parsing", "正在解析PDF...", 15)
         task = progress.add_task("Parsing PDF...", total=None)
         content = parse_pdf(local_pdf, figures_dir=figures_dir)
         progress.update(task, completed=True, description="[green]PDF parsed")
@@ -93,6 +104,7 @@ def run_full_pipeline(
         analyzed = AnalyzedPaper(content=content)
 
         if "summary" in targets:
+            _emit("summary", "正在生成简要介绍...", 25)
             task = progress.add_task("Generating summary...", total=None)
             text, score, reason = analyze_for_summary(content, model, lang, verbosity)
             analyzed.summary_text = text
@@ -103,22 +115,26 @@ def run_full_pipeline(
 
         slides = []
         if targets & {"slides", "beamer", "script"}:
+            _emit("slides_content", "正在AI分析生成PPT内容...", 35)
             task = progress.add_task("Generating slides...", total=None)
             slides = analyze_for_slides(content, model, lang, verbosity)
             analyzed.slides = slides
             progress.update(task, completed=True, description="[green]Slides content ready")
 
         if "slides" in targets and slides:
+            _emit("slides", "正在构建PPT文件...", 45)
             task = progress.add_task("Building PPTX...", total=None)
             results["slides"] = generate_pptx(slides, content, out, ppt_theme)
             progress.update(task, completed=True, description="[green]PPTX done")
 
         if "beamer" in targets and slides:
+            _emit("beamer", "正在生成Beamer幻灯片...", 52)
             task = progress.add_task("Building Beamer...", total=None)
             results["beamer"] = generate_beamer(slides, content, out, beamer_theme, lang)
             progress.update(task, completed=True, description="[green]Beamer done")
 
         if "script" in targets and slides:
+            _emit("script", "正在生成讲解稿...", 60)
             task = progress.add_task("Generating script...", total=None)
             script_text = analyze_for_script(content, slides, model, lang)
             analyzed.script_text = script_text
@@ -126,6 +142,7 @@ def run_full_pipeline(
             progress.update(task, completed=True, description="[green]Script done")
 
         if "notes" in targets:
+            _emit("notes", f"正在生成学习笔记 ({notes_mode})...", 70)
             task = progress.add_task(f"Generating notes ({notes_mode})...", total=None)
             notes_text = analyze_for_notes(content, model, lang, notes_mode)
             analyzed.notes_text = notes_text
@@ -133,6 +150,7 @@ def run_full_pipeline(
             progress.update(task, completed=True, description="[green]Notes done")
 
         if "mindmap" in targets:
+            _emit("mindmap", "正在生成思维导图...", 80)
             task = progress.add_task("Generating mindmap...", total=None)
             mm = analyze_for_mindmap(content, model, lang)
             analyzed.mindmap_markdown = mm
@@ -140,6 +158,7 @@ def run_full_pipeline(
             progress.update(task, completed=True, description="[green]Mindmap done")
 
         if "poster" in targets:
+            _emit("poster", "正在生成学术海报...", 88)
             task = progress.add_task("Generating poster...", total=None)
             poster = analyze_for_poster(content, model, lang)
             analyzed.poster_text = poster
@@ -147,6 +166,7 @@ def run_full_pipeline(
             progress.update(task, completed=True, description="[green]Poster done")
 
         if "translate" in targets:
+            _emit("translate", "正在生成双语翻译...", 94)
             task = progress.add_task("Generating translation...", total=None)
             trans = analyze_for_translation(content, model)
             analyzed.translated_summary = trans
